@@ -43,8 +43,9 @@ export const repository = new github.Repository(
       secretScanningPushProtection: { status: "enabled" },
     },
 
-    // Belt and braces: `protect` blocks any plan that would delete the repo,
-    // and if it is ever removed, destroy archives instead of deleting.
+    // `protect` blocks any plan that would delete the repo, and
+    // `retainOnDelete` makes Pulumi only forget it, never call GitHub's
+    // delete. This archive-instead-of-delete applies only if both are removed.
     archiveOnDestroy: true,
   },
   { protect: true, retainOnDelete: true },
@@ -86,7 +87,12 @@ new github.RepositoryRuleset("default-branch", {
     ...(requiredChecks.length > 0 && {
       requiredStatusChecks: {
         strictRequiredStatusChecksPolicy: true,
-        requiredChecks: requiredChecks.map((context) => ({ context })),
+        // Only GitHub Actions (app id 15368) can satisfy the check, not a
+        // commit status of the same name posted through the API.
+        requiredChecks: requiredChecks.map((context) => ({
+          context,
+          integrationId: 15368,
+        })),
       },
     }),
   },

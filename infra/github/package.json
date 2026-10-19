@@ -7,7 +7,7 @@
   "main": "index.ts",
   "scripts": {
     "typecheck": "tsc",
-    "adopt": "GITHUB_TOKEN=$(gh auth token) pulumi import github:index/repository:Repository repository \"$(pulumi config get repository)\" --stack main --protect --generate-code=false --yes",
+    "adopt": "GITHUB_TOKEN=$(gh auth token) pulumi import github:index/repository:Repository repository \"$(pulumi config get repository --stack main)\" --stack main --protect --generate-code=false --yes",
     "preview": "GITHUB_TOKEN=$(gh auth token) pulumi preview --stack main --diff",
     "apply": "GITHUB_TOKEN=$(gh auth token) pulumi up --stack main --diff"
   },

@@ -59,7 +59,7 @@ Update this table in the same PR that adds, renames, or starts reading an output
 `.github/workflows/ci.yml`, on every PR and push to `main`:
 
 - **Checks:** dependency audit, gitleaks over the full history, Biome and `tsc`, and actionlint/zizmor when workflows change. `required` aggregates them and is the one required status check.
-- **`check: pulumi preview`** (PRs): `pulumi preview --diff` of `infra/cloudflare`'s prod stack, posted as a PR comment. It runs in the `preview` environment, whose Cloudflare token can only read, because any PR branch can trigger it.
+- **`check: pulumi preview`** (PRs): `pulumi preview --diff` of `infra/cloudflare`'s prod stack, posted as a PR comment. It runs in the `preview` environment, whose Cloudflare token can only read, because any PR branch can trigger it. It is skipped on Dependabot's PRs, which get no secrets. Push any commit to the branch to run it, and always do so for `@pulumi/*` bumps.
 - **`deploy: prod`** (pushes to `main`): `pulumi up`, in the `prod` environment. That environment allows only `main`, needs a reviewer's approval, and holds the write token. Reject the approval for a push that shouldn't apply; the next approved run applies everything merged since.
 
 Both Pulumi jobs run only when the `PULUMI_CI_ENABLED` repo variable is `true`. `infra/github` sets it from `pulumiCiEnabled`.
@@ -73,7 +73,7 @@ Both Pulumi jobs run only when the `PULUMI_CI_ENABLED` repo variable is `true`. 
 - **The repository:** description, visibility, squash-only merges titled from the PR, deleting branches after merge, secret scanning with push protection, and Dependabot alerts. It is `protect`ed and archived rather than deleted if it ever leaves the program.
 - **A ruleset on `main`:** no deletion or force pushes, linear history, PRs with resolved threads, and the `required` check. Repository admins can bypass it.
 - **Environments:** `preview` (any branch, no reviewer) and `prod` (`main` only, with `prodReviewerIds` as required reviewers).
-- **Cloudflare CI tokens.** It mints a read token and a write token with the same reach and writes each into its environment as `CLOUDFLARE_API_TOKEN`. Nobody sees or copies them, and destroying the stack revokes them. To rotate one, run `pnpm apply --replace <token URN>`. The permissions are in `infra/github/src/cloudflare-tokens.ts`. Add a permission there, in both tokens, in the same PR as the resource that needs it.
+- **Cloudflare CI tokens.** It mints a read token and a write token with the same reach and writes each into its environment as `CLOUDFLARE_API_TOKEN`. They are never stack outputs, so nobody copies them, and destroying the stack revokes them. To rotate one, run `pnpm apply --replace <token URN>`. The permissions are in `infra/github/src/cloudflare-tokens.ts`. Add a permission there, in both tokens, in the same PR as the resource that needs it.
 
 It does not manage the workflow files, `dependabot.yml`, or `PULUMI_ACCESS_TOKEN`, which is set by hand.
 
@@ -99,6 +99,17 @@ Done on 2026-10-18, and recorded here for rebuilding from scratch. Create both s
 
 3. Turn the Pulumi jobs on. Set `pulumiCiEnabled: "true"` in `infra/github/Pulumi.main.yaml`, merge that, then run `pnpm apply` in `infra/github`.
 
+### Security model
+
+The Cloudflare write token can reach every site on the zone, so it lives in exactly one place: the `prod` environment's secret, which only a run on `main` approved by a reviewer can read. `infra/github` never exports it, and the bootstrap token in `Pulumi.main.yaml` is encrypted with a key only Pulumi Cloud holds.
+
+`PULUMI_ACCESS_TOKEN` is the weak point, and it can't be fixed on the Pulumi free tier. It is a repository secret, so any job can use it, including `check: pulumi preview` on any same-repo PR branch. It is a personal token, with all of its owner's access, and stack-scoped tokens need a paid Pulumi edition. A PR branch could therefore:
+
+- Read this stack's decrypted secrets, such as the Resend API keys once #2 lands. A preview has to decrypt them anyway.
+- Write Pulumi state for any stack the token owner can reach.
+
+It cannot get the Cloudflare write token. Fork PRs get no secrets at all. In practice, only people who can push branches to this repo (today, only its owner) can do any of the above. Before giving anyone else push access, move previews behind a reviewer, or move to scoped Pulumi tokens.
+
 ## Local development
 
 Node 24 and pnpm (corepack reads the version from `packageManager`), or use the dev container, which also installs the Pulumi CLI, gh, and gitleaks.
@@ -113,7 +124,7 @@ pnpm preview        # pulumi preview --diff on prod
 pnpm apply          # pulumi up; normally CI does this
 ```
 
-`infra/cloudflare`'s scripts run through `with-infra-token.sh`, which uses the write token minted by `infra/github` (an exported `CLOUDFLARE_API_TOKEN` wins). `infra/github`'s scripts use `gh auth token`.
+`infra/cloudflare`'s scripts need a `CLOUDFLARE_API_TOKEN` you export yourself. The CI tokens are deliberately not readable from anywhere (see [Security model](#security-model)). For a local preview, a token with the read permissions in `infra/github/src/cloudflare-tokens.ts` is enough. `infra/github`'s scripts use `gh auth token`.
 
 Commits follow Conventional Commits, enforced by a commit-msg hook. `pnpm commit` gives a prompt. The pre-commit hook runs Biome through lint-staged and gitleaks on the staged diff.
 

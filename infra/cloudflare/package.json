@@ -7,8 +7,8 @@
   "main": "index.ts",
   "scripts": {
     "typecheck": "tsc",
-    "preview": "./with-infra-token.sh pulumi preview --stack prod --diff",
-    "apply": "./with-infra-token.sh pulumi up --stack prod --diff"
+    "preview": "pulumi preview --stack prod --diff",
+    "apply": "pulumi up --stack prod --diff"
   },
   "dependencies": {
     "@pulumi/cloudflare": "catalog:",
