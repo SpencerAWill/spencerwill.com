@@ -18,3 +18,5 @@ config:
   # once `cloudflare:apiToken` is set here (as a secret).
   spencerwill-shared-github:cloudflareAccountId: d57880630b3277f59331318b53f323b6
   spencerwill-shared-github:cloudflareZoneId: 6bfb4d1d3134e6d765aef413094cd28f
+  cloudflare:apiToken:
+    secure: AAABAPb1gfn4iA6CYZoa1S5pkk6YZ+5pro5bsSWddjyFzzzpve97vJka6pc+g/mlcX3RFvsPCx5sjvPORMiN6XhHIEdZrjwaVS3/uaOTtOy7Z9T+1Q==
