@@ -29,11 +29,14 @@ export function manageSecurity({ zoneId }: { readonly zoneId: string }) {
     );
 
   // ---- TLS ----
-  // Encryption to the origin. Every proxied hostname is a Worker or an R2
-  // custom domain today, so this applies only to a future record pointing at
-  // a real origin.
-  setting("ssl", "full");
-  setting("min_tls_version", "1.0");
+  // Encryption to the origin, validating its certificate ("strict", Full
+  // (strict) in the dashboard). Every proxied hostname is a Worker or an R2
+  // custom domain today, which this doesn't affect; it matters for the first
+  // record that points at a real origin, which must then have a certificate
+  // that's valid for its hostname (a public CA's or a Cloudflare Origin CA).
+  setting("ssl", "strict");
+  // TLS 1.0 and 1.1 are deprecated; anything still on them is very old.
+  setting("min_tls_version", "1.2");
   // "zrt": TLS 1.3 with 0-RTT.
   setting("tls_1_3", "zrt");
   setting("always_use_https", "on");
@@ -45,8 +48,10 @@ export function manageSecurity({ zoneId }: { readonly zoneId: string }) {
   // provider release reads it without crashing.
 
   // ---- Page behavior ----
-  // Rocket Loader rewrites and defers page scripts.
-  setting("rocket_loader", "on");
+  // Off: Rocket Loader rewrites and defers page scripts, which can break the
+  // React apps on this zone (www, ucmc, flareling) and fights a strict
+  // Content-Security-Policy. Each app bundles and loads its own scripts.
+  setting("rocket_loader", "off");
 
   // ---- Challenges ----
   setting("security_level", "medium");
