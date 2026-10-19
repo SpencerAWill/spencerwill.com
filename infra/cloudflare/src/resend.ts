@@ -47,9 +47,12 @@ export interface ResendDomainArgs {
  * because Pulumi's dynamic providers don't work with pnpm (pulumi/pulumi#9085).
  *
  * Resend's records for a sending-only domain land on `send.<domain>` (MX and
- * SPF, the return path) and `resend._domainkey.<domain>` (DKIM), so the apex's
- * Email Routing MX and SPF are untouched. If Resend ever returns a different
- * set of records, the record lookups below throw instead of guessing.
+ * SPF, the return path), `resend._domainkey.<domain>` (DKIM), and, for domains
+ * added since about October 2026, a DNS-only CNAME at `rsend.<domain>` that
+ * Resend also classifies as SPF. The apex's Email Routing MX and SPF are
+ * untouched. Every record Resend returns must match exactly one of the kinds
+ * handled below, or the program fails at preview: a fourth record was once
+ * silently dropped, leaving the domain only partially verified.
  *
  * A key's scope is the domain, not an address: either app's key can send as
  * any `@<domain>` address.
@@ -91,24 +94,48 @@ export class ResendDomain extends pulumi.ComponentResource {
     );
     this.domainId = domainOutput.apply((d) => d.id);
 
-    const pick = (predicate: (r: ResendRecord) => boolean, label: string) =>
-      domainOutput.apply(({ records }) => {
-        const found = records.find(predicate);
-        if (!found) {
-          throw new Error(
-            `resend: expected a ${label} record, got ${JSON.stringify(records.map((r) => ({ record: r.record, type: r.type })))}`,
-          );
-        }
-        return found;
-      });
-
-    // Resend classifies the return-path MX as "SPF" too, so tell the two SPF
-    // records apart by type.
-    const records = {
-      mx: pick((r) => r.type === "MX", "return-path MX"),
-      spf: pick((r) => r.record === "SPF" && r.type === "TXT", "SPF TXT"),
-      dkim: pick((r) => r.record === "DKIM", "DKIM"),
+    // Resend classifies the return-path MX and the rsend CNAME as "SPF" too,
+    // so tell its records apart by type. The keys name the DnsRecords below
+    // (`<name>-<kind>`): renaming one deletes and re-creates a live record.
+    const kinds: Record<string, (r: ResendRecord) => boolean> = {
+      mx: (r) => r.type === "MX",
+      spf: (r) => r.record === "SPF" && r.type === "TXT",
+      dkim: (r) => r.record === "DKIM",
+      cname: (r) => r.type === "CNAME",
     };
+    const describe = (list: ResendRecord[]) =>
+      JSON.stringify(
+        list.map((r) => ({ record: r.record, type: r.type, name: r.name })),
+      );
+
+    // Each record must match exactly one kind, and each kind one record.
+    const checked = domainOutput.apply(({ records }) => {
+      const unhandled = records.filter(
+        (r) =>
+          Object.values(kinds).filter((matches) => matches(r)).length !== 1,
+      );
+      if (unhandled.length > 0) {
+        throw new Error(
+          `resend: records match no kind, or more than one, in src/resend.ts: ${describe(unhandled)}`,
+        );
+      }
+      return records;
+    });
+
+    const records = Object.fromEntries(
+      Object.entries(kinds).map(([kind, matches]) => [
+        kind,
+        checked.apply((list) => {
+          const found = list.filter(matches);
+          if (found.length !== 1) {
+            throw new Error(
+              `resend: expected one ${kind} record, got ${describe(found)} of ${describe(list)}`,
+            );
+          }
+          return found[0] as ResendRecord;
+        }),
+      ]),
+    );
 
     // Resend may name records relative to the domain ("send") or in full.
     // Cloudflare always stores the full name, so normalize to that, or every
@@ -132,6 +159,9 @@ export class ResendDomain extends pulumi.ComponentResource {
             ...(kind === "mx" && {
               priority: record.apply((r) => r.priority ?? 10),
             }),
+            // Resend checks this CNAME's target directly, so it must not be
+            // proxied (which would answer with Cloudflare's own addresses).
+            ...(kind === "cname" && { proxied: false }),
             // 1 is "automatic".
             ttl: 1,
             comment: `Managed by Pulumi (spencerwill-shared): Resend ${kind}`,
