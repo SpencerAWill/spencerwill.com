@@ -1,5 +1,6 @@
 import * as pulumi from "@pulumi/pulumi";
 import { ResendDomain } from "./src/resend.ts";
+import { manageZone } from "./src/zone.ts";
 
 /**
  * Zone- and account-wide Cloudflare resources for spencerwill.com: things
@@ -15,7 +16,7 @@ import { ResendDomain } from "./src/resend.ts";
  *   #2  shared Resend sending domain and per-app keys (below)
  *   #3  Zero Trust organization and login methods
  *   #4  zone security settings (WAF skip rule for CI smoke tests)
- *   #5  the zone itself and its DNS (until then the zone is NOT managed here)
+ *   #5  the zone itself and the DNS records nobody else owns (src/zone.ts)
  *   #6  DMARC
  *
  * Anything that already exists in Cloudflare comes in with `pulumi import`,
@@ -33,6 +34,9 @@ const zoneName = cfg.require("zoneName");
 // Echoed from config so consumers can take the account and zone from here
 // instead of repeating the IDs in each of their own stack configs.
 export { accountId, zoneId, zoneName };
+
+// ---- The zone and its unowned DNS records (#5) ----
+manageZone({ accountId, zoneId, zoneName });
 
 // ---- Resend (#2) ----
 //

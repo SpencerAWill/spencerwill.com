@@ -28,11 +28,21 @@ Each piece lands in its own PR:
 | #5 | Import the zone itself and its DNS |
 | #6 | Step DMARC up to `p=reject` |
 
-Until #5 lands, **the `spencerwill.com` zone itself is not managed here**, matching ucmc. Anything that already exists in Cloudflare comes in with `pulumi import`, never by being created again, and must preview with no changes after import. Anything whose replacement would take sites down or re-issue keys (the zone, the Resend domain) is `protect: true`.
+The `spencerwill.com` zone itself is imported here (#5) and `protect`ed. Anything that already exists in Cloudflare comes in with `pulumi import`, never by being created again, and must preview with no changes after import. Anything whose replacement would take sites down or re-issue keys (the zone, the Resend domain) is `protect: true`.
 
 ### Which repo owns what
 
 This repo is the only place for zone-wide resources: zone settings, WAF and bot rules, the zone's own DNS, Email Routing, DMARC, the Zero Trust organization and its login methods. It also owns the Pulumi Cloud OIDC issuer that every repo's CI logs in through (see [GitHub as code](#github-as-code)). Apps manage only their own hostnames, Worker custom domains, data resources, and Access *applications*. If an app's stack creates a DNS record, it stays there. Every other DNS record goes here.
+
+### Adding a DNS record
+
+Every record in the zone has exactly one owner (the list is in `infra/cloudflare/src/zone.ts`):
+
+- **A record that serves one app's hostname,** in a stack that creates that hostname: that app's stack. For example, www's `www` CNAME is in www.spencerwill.com.
+- **A record made by a Cloudflare feature** (Worker or R2 custom domains, Email Routing's MX and DKIM): nobody declares it. It's read-only and belongs to whatever created the feature.
+- **Everything else** (zone-wide mail records, verification TXT records, anything not tied to one app's stack): here, in `src/zone.ts`, with a PR and its `pulumi preview`.
+
+To bring in a record that was added by hand, declare it with its exact current values (TXT contents with their quotes) and `{ import: "<zone id>/<record id>" }`. The preview must show `= import` and no other change for it. Never create a second record for a name that already has one.
 
 ## Stack outputs
 
