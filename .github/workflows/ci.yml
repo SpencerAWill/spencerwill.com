@@ -30,9 +30,11 @@ jobs:
   # these outputs, and a skipped job still satisfies the required check, so a
   # docs-only PR does not wait on a preview. Push runs skip detection and run
   # everything.
+  #
+  # Runs on drafts too. Skipping drafts here would skip every check, and
+  # `required` would then report a green result on the draft's head commit.
   paths:
     name: "check: changes"
-    if: github.event.pull_request.draft != true
     runs-on: ubuntu-latest
     timeout-minutes: 2
     permissions:
@@ -200,14 +202,22 @@ jobs:
   # can only read (infra/github mints it). The write token stays in `prod`,
   # which only main can use, behind a reviewer.
   #
-  # Skipped for PRs from forks, which GitHub gives no secrets (the job would
-  # fail on an empty token), and until PULUMI_CI_ENABLED is "true".
+  # It is not a boundary against someone who can push a branch, though: this
+  # job holds PULUMI_ACCESS_TOKEN, which can decrypt this stack's state (see
+  # "Security model" in the README).
+  #
+  # Skipped where the run gets no secrets and would fail on an empty token:
+  # PRs from forks, and runs Dependabot triggered (those get only Dependabot
+  # secrets). Push any commit to a Dependabot branch to preview it, which
+  # matters for @pulumi/* bumps. Also skipped until PULUMI_CI_ENABLED is
+  # "true".
   preview:
     name: "check: pulumi preview"
     needs: [paths, verify]
     if: >-
       github.event_name == 'pull_request' &&
       github.event.pull_request.head.repo.fork != true &&
+      github.actor != 'dependabot[bot]' &&
       vars.PULUMI_CI_ENABLED == 'true' &&
       needs.paths.outputs.code == 'true'
     runs-on: ubuntu-latest

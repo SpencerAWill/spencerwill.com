@@ -79,11 +79,7 @@ if (tokens) {
   }
 }
 
+// Deliberately no token outputs. PR previews hold PULUMI_ACCESS_TOKEN, which
+// can read this stack's outputs with --show-secrets; exporting the write token
+// would hand it to any PR branch and bypass the `prod` environment.
 export const repositoryUrl = repository.htmlUrl;
-
-/**
- * The write token, so local runs of infra/cloudflare use the same scoped token
- * as CI (infra/cloudflare/with-infra-token.sh reads it). Encrypted in state and
- * shown only with --show-secrets.
- */
-export const cloudflareWriteToken = tokens?.write;
