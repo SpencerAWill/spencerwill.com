@@ -34,6 +34,10 @@ The `spencerwill.com` zone itself is imported here (#5) and `protect`ed. Anythin
 
 This repo is the only place for zone-wide resources: zone settings, WAF and bot rules, the zone's own DNS, Email Routing, DMARC, the Zero Trust organization and its login methods. It also owns the Pulumi Cloud OIDC issuer that every repo's CI logs in through (see [GitHub as code](#github-as-code)). Apps manage only their own hostnames, Worker custom domains, data resources, and Access *applications*. If an app's stack creates a DNS record, it stays there. Every other DNS record goes here.
 
+### Zero Trust
+
+This repo owns the account's Zero Trust organization (its team domain) and its login methods (`infra/cloudflare/src/zero-trust.ts`). Both are protected. Each app keeps its own Access *applications* and their policies in its own stack: today, ucmc's and flareling's dev outboxes. The only login method is Cloudflare's identity provider, restricted to account members. To let someone outside the account into an application, add a method here, such as One-time PIN, rather than in the app.
+
 ### Adding a DNS record
 
 Every record in the zone has exactly one owner (a dated snapshot of who owns which is in `infra/cloudflare/src/zone.ts`):
@@ -62,6 +66,7 @@ const zoneId = shared.requireOutput("zoneId");
 | `ucmcFromEmail` | `ucmc@spencerwill.com` | ucmc.spencerwill.com prod |
 | `flarelingResendApiKey` | flareling's Resend sending key (secret) | flareling prod (flareling#13, not yet) |
 | `flarelingFromEmail` | `flareling@spencerwill.com` | flareling prod (not yet) |
+| `accessTeamDomain` | The Zero Trust team domain, a bare host (`late-hat-fec1.cloudflareaccess.com`). Access JWTs' `iss` is `https://` plus this | Nobody yet (ucmc and flareling dev set it in their own config; switch them to this) |
 | `resendDomainId` | The domain's ID in Resend | Nobody (for looking it up in Resend) |
 
 Update this table in the same PR that adds, renames, or starts reading an output.
