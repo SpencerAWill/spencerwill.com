@@ -39,7 +39,7 @@ export function manageZone({
       type: "full",
       paused: false,
     },
-    { protect: true, import: zoneId },
+    { protect: true },
   );
 
   // TXT contents are declared with their quotes, exactly as Cloudflare
@@ -64,7 +64,7 @@ export function manageZone({
       proxied: false,
       comment: "For mail@spencerwill.com",
     },
-    { protect: true, import: `${zoneId}/c0f6f59e4c52f87a50fdbf60800fd3ba` },
+    { protect: true },
   );
 
   // Still p=none; stepping it up is #6. Reports go to Cloudflare's DMARC
@@ -81,7 +81,7 @@ export function manageZone({
       proxied: false,
       comment: "Email DMARC record",
     },
-    { protect: true, import: `${zoneId}/86a62acad36f1503073ee7eedca5a29d` },
+    { protect: true },
   );
 
   return { zone, apexSpf, dmarc };
