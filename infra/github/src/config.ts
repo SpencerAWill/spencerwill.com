@@ -59,6 +59,15 @@ if (pulumiCiEnabled && prodReviewerIds.length === 0) {
 export const pulumiOrganization = config.require("pulumiOrganization");
 export const pulumiUserLogin = config.require("pulumiUserLogin");
 
+/**
+ * Other repos whose CI logs in to `pulumiOrganization` through the same OIDC
+ * issuer, as `<owner>/<repo>` to their GitHub environments. Pulumi Cloud
+ * allows only one GitHub issuer per organization, so it can't be registered
+ * in each repo. This repo's own entry is added in index.ts.
+ */
+export const pulumiOidcRepositories =
+  config.getObject<Record<string, string[]>>("pulumiOidcRepositories") ?? {};
+
 /** Cloudflare account the CI tokens are minted in. */
 export const cloudflareAccountId = config.require("cloudflareAccountId");
 

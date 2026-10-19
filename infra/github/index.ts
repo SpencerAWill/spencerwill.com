@@ -7,6 +7,7 @@ import {
   owner,
   prodReviewerIds,
   pulumiCiEnabled,
+  pulumiOidcRepositories,
   pulumiOrganization,
   pulumiUserLogin,
   repositoryName,
@@ -83,13 +84,22 @@ if (tokens) {
   }
 }
 
-// ci.yml's Pulumi jobs log in through this instead of a stored token. Must
+// ci.yml's Pulumi jobs log in through this instead of a stored token, and so
+// do other repos' listed in pulumiOidcRepositories. This repo's entry must
 // list every environment a Pulumi job in ci.yml declares.
+const thisRepository = `${owner}/${repositoryName}`;
+if (thisRepository in pulumiOidcRepositories) {
+  throw new Error(
+    `pulumiOidcRepositories lists ${thisRepository}; its environments are set in index.ts.`,
+  );
+}
 createPulumiOidcIssuer({
   organization: pulumiOrganization,
   userLogin: pulumiUserLogin,
-  repository: `${owner}/${repositoryName}`,
-  environments: ["preview", "prod"],
+  repositories: {
+    [thisRepository]: ["preview", "prod"],
+    ...pulumiOidcRepositories,
+  },
 });
 
 // Deliberately no token outputs. PR previews hold PULUMI_ACCESS_TOKEN, which

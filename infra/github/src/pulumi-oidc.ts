@@ -1,53 +1,82 @@
 import * as pulumiservice from "@pulumi/pulumiservice";
 
 /**
- * Lets ci.yml's Pulumi jobs exchange GitHub's OIDC token for a short-lived
+ * Lets GitHub Actions jobs exchange GitHub's OIDC token for a short-lived
  * Pulumi access token, so no long-lived PULUMI_ACCESS_TOKEN is stored in
  * GitHub. https://www.pulumi.com/docs/pulumi-cloud/access-management/oidc/client/github/
  *
- * Only jobs that declare one of `environments` can exchange: GitHub puts the
+ * Account-wide, which is why it lives in this repo: Pulumi Cloud allows one
+ * issuer per URL per organization (registering GitHub a second time fails
+ * with "issuer ... already registered", checked 2026-10-19). So every repo
+ * whose CI logs in to `organization` this way (this one, and ucmc, www, or
+ * flareling when they move to OIDC) gets its policies here, through
+ * `repositories`. The resource owns the whole policy list, so a policy added
+ * by hand in the Pulumi Cloud UI is removed on the next apply.
+ *
+ * Each policy allows exactly one repository and environment: GitHub puts the
  * environment in the token's `sub` (`repo:<owner>/<repo>:environment:<name>`)
- * whenever a job declares one, and that replaces the ref. No other workflow,
- * no Dependabot run, and no other repository matches.
+ * whenever a job declares one, so only jobs that declare a listed environment
+ * can exchange. Nothing matches a job without an environment, a Dependabot
+ * run, or an unlisted repository.
  *
  * The tokens are personal: on this Pulumi edition, organization and team
- * tokens (which could be scoped to fewer stacks) aren't offered. So a token
- * carries `userLogin`'s full access, and `preview` (open to every PR branch)
- * can mint one. See "Security model" in the README.
+ * tokens (which could be scoped to fewer stacks) aren't offered. So every
+ * token carries `userLogin`'s full access, across every repo's stacks. See
+ * "Security model" in the README.
  */
 export function createPulumiOidcIssuer({
   organization,
   userLogin,
-  repository,
-  environments,
+  repositories,
 }: {
   readonly organization: string;
   readonly userLogin: string;
-  /** `<owner>/<repo>`. */
-  readonly repository: string;
-  readonly environments: readonly string[];
+  /** `<owner>/<repo>` to the GitHub environments allowed to log in. */
+  readonly repositories: Readonly<Record<string, readonly string[]>>;
 }) {
-  // One issuer per Pulumi organization and URL. If another repo (ucmc,
-  // flareling) moves to OIDC, add its policies here rather than registering
-  // GitHub again.
-  return new pulumiservice.OidcIssuer("github-actions", {
-    organization,
-    name: "GitHub Actions",
-    url: "https://token.actions.githubusercontent.com",
-    // Enough for the longest Pulumi job (deploy, 20 min timeout) with room to
-    // spare. The token dies with it either way.
-    maxExpirationSeconds: 3600,
-    // Pulumi Cloud adds a deny-all policy to a new issuer; these are the only
-    // exchanges allowed. One policy per environment rather than a wildcard,
-    // so adding an environment is a deliberate change here.
-    policies: environments.map((environment) => ({
-      decision: "allow",
-      tokenType: "personal",
-      userLogin,
-      rules: {
-        aud: `urn:pulumi:org:${organization}`,
-        sub: `repo:${repository}:environment:${environment}`,
-      },
-    })),
-  });
+  const subjects = Object.entries(repositories).flatMap(
+    ([repository, environments]) =>
+      environments.map(
+        (environment) => `repo:${repository}:environment:${environment}`,
+      ),
+  );
+
+  return new pulumiservice.OidcIssuer(
+    "github-actions",
+    {
+      organization,
+      // Says where it is managed, for anyone who finds it in the Pulumi Cloud
+      // UI and wants to change it.
+      name: "GitHub Actions (managed by SpencerAWill/spencerwill.com infra/github)",
+      url: "https://token.actions.githubusercontent.com",
+      // Declared because the provider (1.4.0) sends this input on every
+      // update, and Pulumi Cloud rejects an update with none ("You must
+      // provide at least one thumbprint"). Pulumi Cloud checks the issuer's
+      // certificate against trusted CAs first and falls back to thumbprints
+      // only if that fails, so GitHub renewing this (Let's Encrypt) leaf
+      // certificate doesn't break login; a stale value here is harmless.
+      // Refresh with:
+      //   echo | openssl s_client -connect token.actions.githubusercontent.com:443 \
+      //     -servername token.actions.githubusercontent.com 2>/dev/null \
+      //     | openssl x509 -noout -fingerprint -sha256
+      // (lowercase, colons removed). The value recorded at registration was
+      // the SHA-256 one below, for the leaf expiring 2026-12-07.
+      thumbprints: [
+        "2a6aa56347230d695e4ab7a8e5b6f8672d18c2bf98790d06d54dd0706388e6a1",
+      ],
+      // Enough for the longest Pulumi job in any repo, with room to spare.
+      // A job can ask for less (pulumi/auth-actions' token-expiration).
+      maxExpirationSeconds: 3600,
+      // Pulumi Cloud denies any exchange no allow policy matches. One policy
+      // per subject rather than wildcards, so every grant is listed here.
+      policies: subjects.map((sub) => ({
+        decision: "allow",
+        tokenType: "personal",
+        userLogin,
+        rules: { aud: `urn:pulumi:org:${organization}`, sub },
+      })),
+    },
+    // Deleting it breaks Pulumi login in every repo that uses it.
+    { protect: true },
+  );
 }

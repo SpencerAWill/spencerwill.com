@@ -18,6 +18,11 @@ config:
   # pulumi/auth-actions steps in ci.yml.
   spencerwill-shared-github:pulumiOrganization: SpencerAWill
   spencerwill-shared-github:pulumiUserLogin: SpencerAWill
+  # Other repos that log in through the same OIDC issuer (Pulumi Cloud allows
+  # one per GitHub URL), as "<owner>/<repo>": [<GitHub environments>]. Add a
+  # repo here and apply this stack before its workflows switch to OIDC.
+  # Example: '{"SpencerAWill/ucmc.spencerwill.com": ["dev", "prod"]}'
+  spencerwill-shared-github:pulumiOidcRepositories: "{}"
   # Where the CI tokens are minted, and the zone their zone permissions are
   # scoped to. Same values as infra/cloudflare's prod stack. Minting runs only
   # once `cloudflare:apiToken` is set here (as a secret).

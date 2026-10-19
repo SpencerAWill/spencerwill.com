@@ -31,7 +31,7 @@ Until #5 lands, **the `spencerwill.com` zone itself is not managed here**, match
 
 ### Which repo owns what
 
-This repo is the only place for zone-wide resources: zone settings, WAF and bot rules, the zone's own DNS, Email Routing, DMARC, the Zero Trust organization and its login methods. Apps manage only their own hostnames, Worker custom domains, data resources, and Access *applications*. If an app's stack creates a DNS record, it stays there. Every other DNS record goes here.
+This repo is the only place for zone-wide resources: zone settings, WAF and bot rules, the zone's own DNS, Email Routing, DMARC, the Zero Trust organization and its login methods. It also owns the Pulumi Cloud OIDC issuer that every repo's CI logs in through (see [GitHub as code](#github-as-code)). Apps manage only their own hostnames, Worker custom domains, data resources, and Access *applications*. If an app's stack creates a DNS record, it stays there. Every other DNS record goes here.
 
 ## Stack outputs
 
@@ -74,7 +74,7 @@ Both Pulumi jobs run only when the `PULUMI_CI_ENABLED` repo variable is `true`. 
 - **A ruleset on `main`:** no deletion or force pushes, linear history, PRs with resolved threads, and the `required` check. Repository admins can bypass it.
 - **Environments:** `preview` (any branch, no reviewer) and `prod` (`main` only, with `prodReviewerIds` as required reviewers).
 - **Cloudflare CI tokens.** It mints a read token and a write token with the same reach and writes each into its environment as `CLOUDFLARE_API_TOKEN`. They are never stack outputs, so nobody copies them, and destroying the stack revokes them. To rotate one, run `pnpm apply --replace <token URN>`. The permissions are in `infra/github/src/cloudflare-tokens.ts`. Add a permission there, in both tokens, in the same PR as the resource that needs it.
-- **Pulumi Cloud OIDC.** It registers GitHub Actions as an OIDC issuer in Pulumi Cloud, with one allow policy per environment (`repo:SpencerAWill/spencerwill.com:environment:preview` and `:prod`). ci.yml's Pulumi jobs trade their GitHub ID token for a Pulumi token that expires within an hour (`pulumi/auth-actions`), so no Pulumi token is stored in GitHub. The issuer is the account's only one for GitHub; if ucmc or flareling move to OIDC, their policies go in `infra/github/src/pulumi-oidc.ts` too.
+- **Pulumi Cloud OIDC, for every repo.** It registers GitHub Actions as the `SpencerAWill` Pulumi org's OIDC issuer. Jobs trade their GitHub ID token for a Pulumi token that lasts at most an hour (`pulumi/auth-actions`), so no Pulumi token is stored in GitHub. Pulumi Cloud allows only **one** issuer per GitHub URL per org, so this issuer is shared: every repo that logs in this way gets its allow policies here. Each policy covers one repository and environment (`repo:<owner>/<repo>:environment:<name>`). This repo's are `preview` and `prod`; other repos are listed in `pulumiOidcRepositories` in `Pulumi.main.yaml`. The issuer is `protect`ed, and a policy added by hand in the Pulumi Cloud UI is removed on the next apply.
 
 It does not manage the workflow files or `dependabot.yml`.
 
@@ -105,7 +105,15 @@ CI's Pulumi login is the weak point, and on this Pulumi edition it can only be n
 - Read this stack's decrypted secrets, such as the Resend API keys once #2 lands. A preview has to decrypt them anyway.
 - Write Pulumi state for any stack the token owner can reach.
 
-It cannot get the Cloudflare write token. Fork PRs get no secrets at all. In practice, only people who can push branches to this repo (today, only its owner) can do any of the above. Before giving anyone else push access, move previews behind a reviewer, or move to scoped Pulumi tokens.
+The same applies to every repo listed in `pulumiOidcRepositories`: its CI gets the same all-access personal token, so a PR branch there could read this stack too. It cannot get the Cloudflare write token. Fork PRs get no secrets at all. In practice, only people who can push branches to this repo (today, only its owner) can do any of the above. Before giving anyone else push access, move previews behind a reviewer, or move to scoped Pulumi tokens.
+
+### Moving another repo to Pulumi OIDC
+
+1. Add the repo and the GitHub environments its Pulumi jobs declare to `pulumiOidcRepositories` in `infra/github/Pulumi.main.yaml`. Merge that, then run `pnpm apply` in `infra/github`.
+2. In that repo's workflows, give each Pulumi job `id-token: write` and an `environment:`, and log in with `pulumi/auth-actions` (as in this repo's `ci.yml`: `organization: SpencerAWill`, `requested-token-type: urn:pulumi:token-type:access_token:personal`, `scope: user:SpencerAWill`).
+3. Once a run logs in, delete that repo's `PULUMI_ACCESS_TOKEN` secret.
+
+Don't register a GitHub issuer from another repo's stack. Pulumi Cloud rejects it as a duplicate.
 
 ## Local development
 
