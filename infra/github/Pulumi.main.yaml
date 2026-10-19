@@ -24,7 +24,9 @@ config:
   # one per GitHub URL), as "<owner>/<repo>": [<GitHub environments>]. Add a
   # repo here and apply this stack before its workflows switch to OIDC.
   # Example: '{"SpencerAWill/ucmc.spencerwill.com": ["dev", "prod"]}'
-  spencerwill-shared-github:pulumiOidcRepositories: "{}"
+  # flareling's `preview` environment (PR previews of its infra/cloudflare
+  # stacks) requires a reviewer, as the README's Security model asks.
+  spencerwill-shared-github:pulumiOidcRepositories: '{"SpencerAWill/flareling": ["preview"]}'
   # Where the CI tokens are minted, and the zone their zone permissions are
   # scoped to. Same values as infra/cloudflare's prod stack. Minting runs only
   # once `cloudflare:apiToken` is set here (as a secret).
