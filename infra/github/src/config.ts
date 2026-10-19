@@ -43,12 +43,14 @@ export const requiredChecks =
  */
 export const pulumiCiEnabled = config.getBoolean("pulumiCiEnabled") ?? false;
 
-/** GitHub user IDs allowed to approve prod deploys. */
-export const prodReviewerIds =
-  config.getObject<number[]>("prodReviewerIds") ?? [];
-if (pulumiCiEnabled && prodReviewerIds.length === 0) {
+/**
+ * GitHub user IDs who approve every job that gets a Pulumi token: the
+ * `preview` and `prod` environments. See "Security model" in the README.
+ */
+export const reviewerIds = config.getObject<number[]>("reviewerIds") ?? [];
+if (pulumiCiEnabled && reviewerIds.length === 0) {
   throw new Error(
-    "pulumiCiEnabled needs prodReviewerIds: without a reviewer every push to main would apply to prod unattended.",
+    "pulumiCiEnabled needs reviewerIds: without a reviewer any PR branch could mint a Pulumi token, and every push to main would apply to prod unattended.",
   );
 }
 
@@ -65,8 +67,29 @@ export const pulumiUserLogin = config.require("pulumiUserLogin");
  * allows only one GitHub issuer per organization, so it can't be registered
  * in each repo. This repo's own entry is added in index.ts.
  */
-export const pulumiOidcRepositories =
-  config.getObject<Record<string, string[]>>("pulumiOidcRepositories") ?? {};
+const oidcRepositoriesConfig =
+  config.getObject<Record<string, unknown>>("pulumiOidcRepositories") ?? {};
+for (const [repository, environments] of Object.entries(
+  oidcRepositoriesConfig,
+)) {
+  if (!/^[^/\s]+\/[^/\s]+$/.test(repository)) {
+    throw new Error(
+      `pulumiOidcRepositories key "${repository}" is not "<owner>/<repo>".`,
+    );
+  }
+  if (
+    !Array.isArray(environments) ||
+    environments.length === 0 ||
+    !environments.every((e) => typeof e === "string" && e !== "")
+  ) {
+    throw new Error(
+      `pulumiOidcRepositories["${repository}"] must be a non-empty list of GitHub environment names.`,
+    );
+  }
+}
+export const pulumiOidcRepositories = oidcRepositoriesConfig as Readonly<
+  Record<string, readonly string[]>
+>;
 
 /** Cloudflare account the CI tokens are minted in. */
 export const cloudflareAccountId = config.require("cloudflareAccountId");

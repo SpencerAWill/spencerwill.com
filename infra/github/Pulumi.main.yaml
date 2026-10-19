@@ -7,15 +7,17 @@ config:
   # The aggregate job in ci.yml; it waits on every `check:` job, so renaming
   # one of those never breaks the ruleset.
   spencerwill-shared-github:requiredChecks: '["required"]'
-  # Who approves `deploy: prod` (GitHub user ids: gh api users/<login> -q .id).
-  spencerwill-shared-github:prodReviewerIds: "[43732866]"
+  # Who approves every job that gets a Pulumi token: PR previews and
+  # `deploy: prod` (GitHub user ids: gh api users/<login> -q .id).
+  spencerwill-shared-github:reviewerIds: "[43732866]"
   # Turns on ci.yml's Pulumi jobs, `preview` and `deploy` (the
   # PULUMI_CI_ENABLED repo variable). Needs the CI secrets; see "First-time
   # setup" in the README.
   spencerwill-shared-github:pulumiCiEnabled: "true"
   # The Pulumi Cloud organization ci.yml logs in to through OIDC, and whose
-  # personal token its jobs get. Must match `organization` and `scope` on the
-  # pulumi/auth-actions steps in ci.yml.
+  # personal token its jobs get. Also written to the PULUMI_ORGANIZATION and
+  # PULUMI_USER_LOGIN repo variables, which ci.yml's pulumi/auth-actions
+  # steps read.
   spencerwill-shared-github:pulumiOrganization: SpencerAWill
   spencerwill-shared-github:pulumiUserLogin: SpencerAWill
   # Other repos that log in through the same OIDC issuer (Pulumi Cloud allows
