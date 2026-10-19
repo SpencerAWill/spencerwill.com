@@ -12,7 +12,7 @@ config:
   # Turns on ci.yml's Pulumi jobs, `preview` and `deploy` (the
   # PULUMI_CI_ENABLED repo variable). Off until the CI secrets exist; see
   # "First-time setup" in the README.
-  spencerwill-shared-github:pulumiCiEnabled: "false"
+  spencerwill-shared-github:pulumiCiEnabled: "true"
   # Where the CI tokens are minted, and the zone their zone permissions are
   # scoped to. Same values as infra/cloudflare's prod stack. Minting runs only
   # once `cloudflare:apiToken` is set here (as a secret).

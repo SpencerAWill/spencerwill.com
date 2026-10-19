@@ -81,7 +81,7 @@ It depends on the repo being public. On GitHub Free, rulesets, environments, and
 
 ### First-time setup
 
-Already done: both stacks exist, the repository is adopted into `infra/github`, and its first apply created the environments, the ruleset, and `PULUMI_CI_ENABLED=false`. `infra/cloudflare`'s prod stack has been applied with its config-only outputs. Remaining, in order:
+Done on 2026-10-18, and recorded here for rebuilding from scratch. Create both stacks (`pulumi stack init`), adopt the repository (`pnpm adopt` in `infra/github`, which only imports into state), and apply `infra/github` with `pulumiCiEnabled: "false"`. That creates the environments and the ruleset. Then, in order:
 
 1. Give `infra/github` a Cloudflare token that can create account API tokens (permission **Account API Tokens Write**), then apply. This mints the two CI tokens and writes them into the environments:
 
