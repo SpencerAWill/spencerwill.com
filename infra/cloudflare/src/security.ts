@@ -1,0 +1,114 @@
+import * as cloudflare from "@pulumi/cloudflare";
+
+/**
+ * Zone-wide security settings (#4). They apply to every site on the zone
+ * (www, ucmc, flareling), which is why they live here and nowhere else.
+ *
+ * Imported with their values as they were set by hand (2026-10-19). Changes
+ * come in later PRs, each showing its own `~ update`, never mixed into an
+ * import: Pulumi fails an import whose declared values differ from the live
+ * ones.
+ *
+ * Not managed here:
+ * - The zone's `http_request_dynamic_redirect` ruleset belongs to
+ *   www.spencerwill.com's stack (its www-to-apex redirect). Phase entrypoint
+ *   rulesets are zone singletons, so declaring it here too would make two
+ *   stacks fight over it.
+ * - Settings with no security bearing (caching, compression, Early Hints and
+ *   the like) stay as set in the dashboard until there's a reason to own one.
+ */
+export function manageSecurity({ zoneId }: { readonly zoneId: string }) {
+  const setting = (settingId: string, value: unknown) =>
+    new cloudflare.ZoneSetting(
+      `setting-${settingId.replaceAll("_", "-")}`,
+      { zoneId, settingId, value },
+      { import: `${zoneId}/${settingId}` },
+    );
+
+  // ---- TLS ----
+  // Encryption to the origin. Every proxied hostname is a Worker or an R2
+  // custom domain today, so this applies only to a future record pointing at
+  // a real origin.
+  setting("ssl", "full");
+  setting("min_tls_version", "1.0");
+  // "zrt": TLS 1.3 with 0-RTT.
+  setting("tls_1_3", "zrt");
+  setting("always_use_https", "on");
+  setting("automatic_https_rewrites", "on");
+  // HSTS at the edge: off. Apps that want it send it themselves (flareling's
+  // Worker does).
+  setting("security_header", {
+    strict_transport_security: {
+      enabled: false,
+      max_age: 0,
+      include_subdomains: false,
+      preload: false,
+      nosniff: false,
+    },
+  });
+
+  // ---- Page behavior ----
+  // Rocket Loader rewrites and defers page scripts.
+  setting("rocket_loader", "on");
+
+  // ---- Challenges ----
+  setting("security_level", "medium");
+  setting("browser_check", "on");
+
+  // Bot settings, Free plan. Bot Fight Mode (`fightMode`) challenges what
+  // Cloudflare scores as automated, and on this plan no rule can skip it
+  // (only Super Bot Fight Mode, a paid feature, can be skipped). It is the
+  // suspect in flareling#14 (CI smoke tests getting 403); diagnose that
+  // before changing it.
+  new cloudflare.BotManagement(
+    "bot-management",
+    {
+      zoneId,
+      fightMode: true,
+      enableJs: true,
+      aiBotsProtection: "block",
+      contentBotsProtection: "disabled",
+      crawlerProtection: "disabled",
+      aiTraining: "disallow",
+      aisearch: "disabled",
+      aiUser: "disabled",
+      isRobotsTxtManaged: true,
+      botPreferenceSyncEnabled: true,
+      cfRobotsVariant: "off",
+      aiBotsMigrationOptOut: false,
+    },
+    { import: zoneId },
+  );
+
+  // The zone's rate-limiting entrypoint, a singleton per phase: this resource
+  // owns every rate-limiting rule on the zone, and a rule added in the
+  // dashboard is removed on the next apply. Its one rule blocks requests
+  // carrying a password known to be leaked, once one IP (per data center)
+  // sends more than 5 in 10 seconds.
+  new cloudflare.Ruleset(
+    "rate-limit",
+    {
+      zoneId,
+      kind: "zone",
+      phase: "http_ratelimit",
+      name: "default",
+      description: "",
+      rules: [
+        {
+          ref: "911d4d42169e42da87bef3b507ba914a",
+          description: "Leaked credential check",
+          enabled: true,
+          expression: "(cf.waf.credential_check.password_leaked)",
+          action: "block",
+          ratelimit: {
+            characteristics: ["ip.src", "cf.colo.id"],
+            period: 10,
+            requestsPerPeriod: 5,
+            mitigationTimeout: 10,
+          },
+        },
+      ],
+    },
+    { import: `zones/${zoneId}/080cdde487aa4db99ac1fbc1b6bfe273` },
+  );
+}

@@ -38,6 +38,15 @@ This repo is the only place for zone-wide resources: zone settings, WAF and bot 
 
 This repo owns the account's Zero Trust organization (its team domain) and its login methods (`infra/cloudflare/src/zero-trust.ts`). Both are protected. Each app keeps its own Access *applications* and their policies in its own stack: today, ucmc's and flareling's dev outboxes. The only login method is Cloudflare's identity provider, restricted to account members. To let someone outside the account into an application, add a method here, such as One-time PIN, rather than in the app.
 
+### Zone security settings
+
+`infra/cloudflare/src/security.ts` owns the zone-wide settings that affect every site: TLS (SSL mode, minimum version, TLS 1.3, HTTPS redirects and rewrites, edge HSTS), Rocket Loader, the security level and browser check, the bot settings, and the rate-limiting ruleset (its one rule blocks repeated logins with known-leaked passwords). They were imported as they were set by hand. Each change comes in its own PR, so its `pulumi preview` shows the old and new values.
+
+Two limits worth knowing:
+
+- **The www-to-apex redirect ruleset belongs to www.spencerwill.com's stack.** Rulesets are one per phase per zone, so it must not also be declared here.
+- **Bot Fight Mode can't be skipped by any rule on the Free plan** (only the paid Super Bot Fight Mode can be). If it turns out to be what blocks CI smoke tests (flareling#14), the choice is to turn it off or to keep it, not to add an exception.
+
 ### Adding a DNS record
 
 Every record in the zone has exactly one owner (a dated snapshot of who owns which is in `infra/cloudflare/src/zone.ts`):
