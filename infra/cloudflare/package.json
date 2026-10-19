@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@pulumi/cloudflare": "catalog:",
+    "@pulumi/command": "catalog:",
     "@pulumi/pulumi": "catalog:"
   },
   "devDependencies": {

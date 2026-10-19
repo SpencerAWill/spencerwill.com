@@ -17,11 +17,12 @@ All infrastructure as code lives under `infra/`, as two Pulumi TypeScript projec
 
 ## Scope
 
-Empty at bootstrap. Each piece lands in its own PR:
+Each piece lands in its own PR:
 
 | Issue | What |
 | --- | --- |
-| #2 | Shared Resend sending domain with per-app keys, Email Routing forwards |
+| #2 | Shared Resend sending domain with per-app keys ([Resend](#resend)) |
+| #11 | Email Routing, with forwards for the apps' from-addresses |
 | #3 | Zero Trust organization and login methods |
 | #4 | Zone security settings, with a WAF skip rule for CI smoke tests |
 | #5 | Import the zone itself and its DNS |
@@ -47,12 +48,37 @@ const zoneId = shared.requireOutput("zoneId");
 | `accountId` | The Cloudflare account ID | Nobody yet (each app has it in its own config) |
 | `zoneId` | The `spencerwill.com` zone ID | Nobody yet |
 | `zoneName` | `spencerwill.com` | Nobody yet |
+| `ucmcResendApiKey` | ucmc's Resend sending key (secret) | ucmc.spencerwill.com prod (`emailStack`, ucmc#302) |
+| `ucmcFromEmail` | `ucmc@spencerwill.com` | ucmc.spencerwill.com prod |
+| `flarelingResendApiKey` | flareling's Resend sending key (secret) | flareling prod (flareling#13, not yet) |
+| `flarelingFromEmail` | `flareling@spencerwill.com` | flareling prod (not yet) |
+| `resendDomainId` | The domain's ID in Resend | Nobody (for looking it up in Resend) |
 
 Update this table in the same PR that adds, renames, or starts reading an output.
 
 ### Order of applying changes
 
 **This stack before its consumers.** A consumer's `pulumi up` reads this stack's outputs as they are at that moment, so a new or renamed output has to be applied here first. Remove an output only after every consumer has stopped reading it, and apply this stack last in that case.
+
+## Resend
+
+`infra/cloudflare/src/resend.ts` verifies `spencerwill.com` in Resend and issues one sending key per app. The free Resend plan allows one domain per account, so every app's prod sends from this one, each with its own from-address. Resend's records go on `send.spencerwill.com` (MX and SPF, the return path) and `resend._domainkey.spencerwill.com` (DKIM), so the apex's Email Routing MX and SPF are untouched.
+
+- **Keys are scoped to the domain, not to an address.** Either app's key can send as any `@spencerwill.com` address. Resend can't scope a key more narrowly.
+- **The domain is `protect`ed.** Deleting it re-issues DKIM and stops every app's mail until the domain verifies again.
+- **Keys rotate when the domain is re-created.** Changing `resendManagementApiKey` re-runs the scripts, which re-issues every key. Apply the consumers afterwards, then deploy them.
+- **It's driven through `@pulumi/command`** and `infra/cloudflare/scripts/resend.mjs`, ported from ucmc, because Pulumi's dynamic providers don't work with pnpm (pulumi/pulumi#9085).
+
+It uses a full-access Resend key, set once as an encrypted stack config value:
+
+```sh
+cd infra/cloudflare
+pulumi config set --secret resendManagementApiKey --stack prod   # paste when prompted
+```
+
+**First apply:** the cutover in ucmc.spencerwill.com#298 / #302. ucmc first deletes its own domain (`ucmc.spencerwill.com`), which frees the account's one domain slot. Then this stack is applied, and `spencerwill.com` is verified before ucmc's prod switches to `ucmcResendApiKey`. Until that cutover, the Resend PR stays unmerged: merging it would make every deploy from `main` try to create the domain and fail.
+
+To add an app, add it to `sendingKeys` in `infra/cloudflare/index.ts`, export its `<app>ResendApiKey` and `<app>FromEmail`, and add both to the outputs table above.
 
 ## CI/CD
 
