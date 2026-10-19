@@ -1,6 +1,13 @@
 import * as cloudflare from "@pulumi/cloudflare";
 
 /**
+ * The team domain, a bare host. Access JWTs carry `iss: "https://" + this`,
+ * and their signing keys are at `https://<this>/cdn-cgi/access/certs`.
+ * Renaming it (#16) breaks every app still configured with the old value.
+ */
+const TEAM_DOMAIN = "late-hat-fec1.cloudflareaccess.com";
+
+/**
  * The account's Zero Trust organization and its login methods (#3). Shared by
  * every app's Access applications (ucmc's and flareling's dev outboxes), which
  * stay in each app's own stack. This repo owns only the organization they
@@ -15,10 +22,9 @@ export function manageZeroTrust({ accountId }: { readonly accountId: string }) {
     "zero-trust-organization",
     {
       accountId,
-      name: "late-hat-fec1.cloudflareaccess.com",
-      // The team domain apps' Access JWTs are issued by. Changing it breaks
-      // every app's token verification until they re-read `accessTeamDomain`.
-      authDomain: "late-hat-fec1.cloudflareaccess.com",
+      // Cloudflare stores the team domain as the name too.
+      name: TEAM_DOMAIN,
+      authDomain: TEAM_DOMAIN,
       isUiReadOnly: false,
       allowAuthenticateViaWarp: false,
       warpAuthNonBrowser401: false,

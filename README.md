@@ -66,7 +66,7 @@ const zoneId = shared.requireOutput("zoneId");
 | `ucmcFromEmail` | `ucmc@spencerwill.com` | ucmc.spencerwill.com prod |
 | `flarelingResendApiKey` | flareling's Resend sending key (secret) | flareling prod (flareling#13, not yet) |
 | `flarelingFromEmail` | `flareling@spencerwill.com` | flareling prod (not yet) |
-| `accessTeamDomain` | The Zero Trust team domain (`late-hat-fec1.cloudflareaccess.com`), issuer of Access JWTs | Nobody yet (ucmc and flareling dev set it in their own config; switch them to this) |
+| `accessTeamDomain` | The Zero Trust team domain, a bare host (`late-hat-fec1.cloudflareaccess.com`). Access JWTs' `iss` is `https://` plus this | Nobody yet (ucmc and flareling dev set it in their own config; switch them to this) |
 | `resendDomainId` | The domain's ID in Resend | Nobody (for looking it up in Resend) |
 
 Update this table in the same PR that adds, renames, or starts reading an output.

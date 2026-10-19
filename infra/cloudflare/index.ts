@@ -43,9 +43,10 @@ manageZone({ accountId, zoneId, zoneName });
 const zeroTrust = manageZeroTrust({ accountId });
 
 /**
- * The Zero Trust team domain (`<team>.cloudflareaccess.com`), which issues
- * the Access JWTs apps verify. For ucmc's and flareling's dev outboxes, which
- * set it in their own stack config today.
+ * The Zero Trust team domain, a bare host (`<team>.cloudflareaccess.com`).
+ * Access JWTs carry `iss: "https://<this>"`; compare with the scheme added.
+ * For ucmc's and flareling's dev outboxes, which set it in their own stack
+ * config today (#16 moves them to this output).
  */
 export const accessTeamDomain = zeroTrust.teamDomain;
 
