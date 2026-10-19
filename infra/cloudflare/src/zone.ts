@@ -11,8 +11,9 @@ import * as cloudflare from "@pulumi/cloudflare";
  * - Here, through src/resend.ts: Resend's four records.
  * - www.spencerwill.com's stack: the `www` CNAME.
  * - Read-only (Cloudflare marks them so), made by a Cloudflare feature that
- *   owns them, and never declared anywhere: Email Routing's apex MX records and `cf2024-1._domainkey` DKIM,
- *   and the records behind Worker custom domains (apex, `ucmc`, `dev.ucmc`,
+ *   owns them, and never declared anywhere: Email Routing's apex MX records
+ *   and `cf2024-1._domainkey` DKIM, and the records behind Worker custom
+ *   domains (apex, `ucmc`, `dev.ucmc`,
  *   `dev.flareling`) and R2 custom domains (`cdn.ucmc`, `cdn.dev.ucmc`). Each
  *   belongs to the feature (and stack) that created the hostname.
  *
