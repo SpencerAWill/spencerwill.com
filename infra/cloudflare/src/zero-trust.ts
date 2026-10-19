@@ -31,16 +31,17 @@ export function manageZeroTrust({ accountId }: { readonly accountId: string }) {
       denyUnmatchedRequests: false,
       denyUnmatchedRequestsExemptedZoneNames: [],
       strictServiceTokenAuth: true,
+      // Off, as it is. Cloudflare stores it as { enabled: false } with a null
+      // action and threshold, but the provider requires all three fields, so
+      // this fills in unused ones (the import plans that as a one-time
+      // update). With enabled: false, nothing acts on inactive tokens.
+      serviceTokenInactivity: {
+        enabled: false,
+        action: "disable",
+        inactivityThresholdDays: 90,
+      },
     },
-    {
-      protect: true,
-      import: accountId,
-      // Not managed here. Cloudflare stores it as { enabled: false } with a
-      // null action and threshold, which the provider's schema can't express
-      // (all three are required), so declaring it is impossible and leaving
-      // it out plans to clear it.
-      ignoreChanges: ["serviceTokenInactivity"],
-    },
+    { protect: true, import: accountId },
   );
 
   // Cloudflare's own identity provider, restricted to account members: the
