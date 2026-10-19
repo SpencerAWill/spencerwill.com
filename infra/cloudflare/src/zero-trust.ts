@@ -41,7 +41,7 @@ export function manageZeroTrust({ accountId }: { readonly accountId: string }) {
         inactivityThresholdDays: 90,
       },
     },
-    { protect: true, import: accountId },
+    { protect: true },
   );
 
   // Cloudflare's own identity provider, restricted to account members: the
@@ -57,10 +57,7 @@ export function manageZeroTrust({ accountId }: { readonly accountId: string }) {
       type: "cloudflare",
       config: { restrictToAccountMembers: true },
     },
-    {
-      protect: true,
-      import: `accounts/${accountId}/aa0d8fcf-acf2-41e1-a6e9-ca4ded058297`,
-    },
+    { protect: true },
   );
 
   return { teamDomain: organization.authDomain };

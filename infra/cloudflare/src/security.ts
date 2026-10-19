@@ -4,10 +4,12 @@ import * as cloudflare from "@pulumi/cloudflare";
  * Zone-wide security settings (#4). They apply to every site on the zone
  * (www, ucmc, flareling), which is why they live here and nowhere else.
  *
- * Imported with their values as they were set by hand (2026-10-19). Changes
- * come in later PRs, each showing its own `~ update`, never mixed into an
- * import: Pulumi fails an import whose declared values differ from the live
- * ones.
+ * Imported as they were set by hand (#17, 2026-10-19), then hardened in #18:
+ * ssl full -> strict, min_tls_version 1.0 -> 1.2, rocket_loader on -> off.
+ * Change a setting in its own PR, so its preview shows `~ update` with the
+ * old and new values. To bring in another existing setting, add
+ * `import: "<zone id>/<setting id>"` with its exact live value for one PR,
+ * then drop the option once it's applied.
  *
  * Not managed here:
  * - The zone's `http_request_dynamic_redirect` ruleset belongs to
@@ -25,7 +27,7 @@ export function manageSecurity({ zoneId }: { readonly zoneId: string }) {
     new cloudflare.ZoneSetting(
       `setting-${settingId.replaceAll("_", "-")}`,
       { zoneId, settingId, value },
-      { import: `${zoneId}/${settingId}`, retainOnDelete: true },
+      { retainOnDelete: true },
     );
 
   // ---- TLS ----
@@ -82,7 +84,7 @@ export function manageSecurity({ zoneId }: { readonly zoneId: string }) {
       // out, they keep their dashboard values.
     },
     // Same reasoning as the zone settings above.
-    { import: zoneId, retainOnDelete: true },
+    { retainOnDelete: true },
   );
 
   // The zone's rate-limiting entrypoint, a singleton per phase: this resource
@@ -115,9 +117,6 @@ export function manageSecurity({ zoneId }: { readonly zoneId: string }) {
       ],
     },
     // Protected: deleting it removes the zone's leaked-credential blocking.
-    {
-      protect: true,
-      import: `zones/${zoneId}/080cdde487aa4db99ac1fbc1b6bfe273`,
-    },
+    { protect: true },
   );
 }

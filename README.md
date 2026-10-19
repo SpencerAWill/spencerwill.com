@@ -40,7 +40,7 @@ This repo owns the account's Zero Trust organization (its team domain) and its l
 
 ### Zone security settings
 
-`infra/cloudflare/src/security.ts` owns the zone-wide settings that affect every site: TLS (SSL mode, minimum version, TLS 1.3, HTTPS redirects and rewrites), Rocket Loader, the security level and browser check, the bot settings, and the rate-limiting ruleset (its one rule blocks repeated logins with known-leaked passwords). They were imported as they were set by hand. Each change comes in its own PR, so its `pulumi preview` shows the old and new values.
+`infra/cloudflare/src/security.ts` owns the zone-wide settings that affect every site: TLS (SSL mode, minimum version, TLS 1.3, HTTPS redirects and rewrites), Rocket Loader, the security level and browser check, the bot settings, and the rate-limiting ruleset (its one rule blocks repeated logins with known-leaked passwords). They were imported as they were set by hand (#17), then hardened in #18: SSL strict, minimum TLS 1.2, Rocket Loader off. Change a setting in its own PR, so its `pulumi preview` shows the old and new values.
 
 Three limits worth knowing:
 
@@ -57,7 +57,7 @@ Every record in the zone has exactly one owner (a dated snapshot of who owns whi
 - **A read-only record** (Cloudflare marks the ones its features own: Worker or R2 custom domains, Email Routing's MX and DKIM): nobody declares it. It belongs to whatever created the feature. An editable record is declared, even if a feature first suggested it (the apex SPF).
 - **Everything else** (zone-wide mail records, verification TXT records, anything not tied to one app's stack): here, in `src/zone.ts`, with a PR and its `pulumi preview`.
 
-To bring in a record that was added by hand, declare it with its exact current values (TXT contents with their quotes) and `{ import: "<zone id>/<record id>" }`. The preview must show `= import` and no other change for it. Never create a second record for a name that already has one.
+To bring in a record that was added by hand, declare it with its exact current values (TXT contents with their quotes) and `{ import: "<zone id>/<record id>" }`. The preview must show `= import` and no other change for it. Once that's applied, remove the `import` option in a follow-up PR (its preview shows no changes): it's dead after the first apply, and a stale one breaks rebuilding the stack from scratch. Never create a second record for a name that already has one.
 
 ## Stack outputs
 
