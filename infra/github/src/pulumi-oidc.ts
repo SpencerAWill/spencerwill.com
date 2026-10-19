@@ -1,3 +1,5 @@
+import * as github from "@pulumi/github";
+import * as pulumi from "@pulumi/pulumi";
 import * as pulumiservice from "@pulumi/pulumiservice";
 
 /**
@@ -13,11 +15,19 @@ import * as pulumiservice from "@pulumi/pulumiservice";
  * `repositories`. The resource owns the whole policy list, so a policy added
  * by hand in the Pulumi Cloud UI is removed on the next apply.
  *
- * Each policy allows exactly one repository and environment: GitHub puts the
- * environment in the token's `sub` (`repo:<owner>/<repo>:environment:<name>`)
- * whenever a job declares one, so only jobs that declare a listed environment
- * can exchange. Nothing matches a job without an environment, a Dependabot
- * run, or an unlisted repository.
+ * Each policy allows exactly one repository and environment, matched on the
+ * token's `sub`. GitHub puts the environment there whenever a job declares
+ * one, so only jobs that declare a listed environment can exchange. Nothing
+ * matches a job without an environment or an unlisted repository.
+ *
+ * The `sub` is GitHub's immutable form,
+ * `repo:<owner>@<owner id>/<repo>@<repo id>:environment:<name>`, with the
+ * numeric IDs looked up here. A repo deleted and re-created under the same
+ * name gets a new ID and doesn't match. Every listed repo must send that
+ * form ("use_immutable_subject": true; check with
+ * `gh api repos/<owner>/<repo>/actions/oidc/customization/sub`). Repos
+ * created recently do by default; older ones (ucmc.spencerwill.com, as of
+ * 2026-10-19) must switch first, see the README.
  *
  * The tokens are personal: on this Pulumi edition, organization and team
  * tokens (which could be scoped to fewer stacks) aren't offered. So every
@@ -35,10 +45,17 @@ export function createPulumiOidcIssuer({
   readonly repositories: Readonly<Record<string, readonly string[]>>;
 }) {
   const subjects = Object.entries(repositories).flatMap(
-    ([repository, environments]) =>
-      environments.map(
-        (environment) => `repo:${repository}:environment:${environment}`,
-      ),
+    ([repository, environments]) => {
+      const [owner = "", name = ""] = repository.split("/");
+      const ownerId = github.getUserOutput({ username: owner }).id;
+      const repoId = github.getRepositoryOutput({
+        fullName: repository,
+      }).repoId;
+      return environments.map(
+        (environment) =>
+          pulumi.interpolate`repo:${owner}@${ownerId}/${name}@${repoId}:environment:${environment}`,
+      );
+    },
   );
 
   return new pulumiservice.OidcIssuer(
