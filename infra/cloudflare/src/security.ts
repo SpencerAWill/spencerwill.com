@@ -70,9 +70,11 @@ export function manageSecurity({ zoneId }: { readonly zoneId: string }) {
       aisearch: "disabled",
       aiUser: "disabled",
       isRobotsTxtManaged: true,
-      botPreferenceSyncEnabled: true,
-      cfRobotsVariant: "off",
       aiBotsMigrationOptOut: false,
+      // Not declared: botPreferenceSyncEnabled (true) and cfRobotsVariant
+      // ("off"). Provider 6.22.0 doesn't read them back on import, so
+      // declaring them plans a write of values that are already live. Left
+      // out, they keep their dashboard values.
     },
     // Same reasoning as the zone settings above.
     { import: zoneId, retainOnDelete: true },
