@@ -272,7 +272,12 @@ jobs:
   deploy:
     name: "deploy: prod"
     needs: required
+    # `!cancelled()` and an explicit check on `required`, not the implicit
+    # `success()`. That one looks at every upstream job, not only `needs`,
+    # and `preview` is always skipped on a push, so this job was skipped with
+    # it. `required` already fails if any check failed.
     if: >-
+      !cancelled() && needs.required.result == 'success' &&
       github.event_name == 'push' && github.ref == 'refs/heads/main' &&
       vars.PULUMI_CI_ENABLED == 'true'
     runs-on: ubuntu-latest
