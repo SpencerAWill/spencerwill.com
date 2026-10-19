@@ -34,6 +34,10 @@ allowBuilds:
   # Pulled in by @pulumi/pulumi. Its postinstall generates the static protobuf
   # accessors used for gRPC to the Pulumi engine.
   protobufjs: true
+  # Denied, not just unlisted (pnpm 12 fails install on an unlisted build).
+  # Its install script only pre-downloads the provider plugin, which Pulumi
+  # fetches on demand anyway, as it does for @pulumi/cloudflare.
+  "@pulumi/command": false
 
 # Every external dependency's version lives here, and packages reference it
 # with `"catalog:"`, so both Pulumi programs run the same provider versions.
