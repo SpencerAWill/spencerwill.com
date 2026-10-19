@@ -38,17 +38,11 @@ export function manageSecurity({ zoneId }: { readonly zoneId: string }) {
   setting("tls_1_3", "zrt");
   setting("always_use_https", "on");
   setting("automatic_https_rewrites", "on");
-  // HSTS at the edge: off. Apps that want it send it themselves (flareling's
-  // Worker does).
-  setting("security_header", {
-    strict_transport_security: {
-      enabled: false,
-      max_age: 0,
-      include_subdomains: false,
-      preload: false,
-      nosniff: false,
-    },
-  });
+  // Edge HSTS (`security_header`, off) is deliberately not managed: provider
+  // 6.22.0 panics reading it (nil pointer in math/big; upstream
+  // cloudflare/terraform-provider-cloudflare#6879, open). Apps that want
+  // HSTS send it themselves (flareling's Worker does). Add it here once a
+  // provider release reads it without crashing.
 
   // ---- Page behavior ----
   // Rocket Loader rewrites and defers page scripts.

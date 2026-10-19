@@ -40,9 +40,11 @@ This repo owns the account's Zero Trust organization (its team domain) and its l
 
 ### Zone security settings
 
-`infra/cloudflare/src/security.ts` owns the zone-wide settings that affect every site: TLS (SSL mode, minimum version, TLS 1.3, HTTPS redirects and rewrites, edge HSTS), Rocket Loader, the security level and browser check, the bot settings, and the rate-limiting ruleset (its one rule blocks repeated logins with known-leaked passwords). They were imported as they were set by hand. Each change comes in its own PR, so its `pulumi preview` shows the old and new values.
+`infra/cloudflare/src/security.ts` owns the zone-wide settings that affect every site: TLS (SSL mode, minimum version, TLS 1.3, HTTPS redirects and rewrites), Rocket Loader, the security level and browser check, the bot settings, and the rate-limiting ruleset (its one rule blocks repeated logins with known-leaked passwords). They were imported as they were set by hand. Each change comes in its own PR, so its `pulumi preview` shows the old and new values.
 
-Two limits worth knowing:
+Three limits worth knowing:
+
+- **Edge HSTS isn't managed yet.** `@pulumi/cloudflare` 6.22.0 panics reading the `security_header` setting (cloudflare/terraform-provider-cloudflare#6879), so it stays as set in the dashboard (off) until a release fixes that.
 
 - **The www-to-apex redirect ruleset belongs to www.spencerwill.com's stack.** Rulesets are one per phase per zone, so it must not also be declared here.
 - **Bot Fight Mode can't be skipped by any rule on the Free plan** (only the paid Super Bot Fight Mode can be). If it turns out to be what blocks CI smoke tests (flareling#14), the choice is to turn it off or to keep it, not to add an exception.
