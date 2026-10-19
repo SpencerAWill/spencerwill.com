@@ -6,3 +6,5 @@ config:
   spencerwill-shared:accountId: d57880630b3277f59331318b53f323b6
   spencerwill-shared:zoneId: 6bfb4d1d3134e6d765aef413094cd28f
   spencerwill-shared:zoneName: spencerwill.com
+  spencerwill-shared:resendManagementApiKey:
+    secure: AAABAPrRQHOKyfqrd32Cznw3Mf4KXCT0On2+7x06xNuLDBjpGQwzaFHTCgguwTpKIFN0SaDRDXgwcYMbukwWjAMoPYc=
