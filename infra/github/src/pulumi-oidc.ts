@@ -26,8 +26,8 @@ import * as pulumiservice from "@pulumi/pulumiservice";
  * name gets a new ID and doesn't match. Every listed repo must send that
  * form ("use_immutable_subject": true; check with
  * `gh api repos/<owner>/<repo>/actions/oidc/customization/sub`). Repos
- * created recently do by default; older ones (ucmc.spencerwill.com, as of
- * 2026-10-19) must switch first, see the README.
+ * created recently do by default; older ones must switch first, see the
+ * README.
  *
  * The tokens are personal: on this Pulumi edition, organization and team
  * tokens (which could be scoped to fewer stacks) aren't offered. So every
