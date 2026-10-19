@@ -26,7 +26,15 @@ export function manageZeroTrust({ accountId }: { readonly accountId: string }) {
       denyUnmatchedRequestsExemptedZoneNames: [],
       strictServiceTokenAuth: true,
     },
-    { protect: true, import: accountId },
+    {
+      protect: true,
+      import: accountId,
+      // Not managed here. Cloudflare stores it as { enabled: false } with a
+      // null action and threshold, which the provider's schema can't express
+      // (all three are required), so declaring it is impossible and leaving
+      // it out plans to clear it.
+      ignoreChanges: ["serviceTokenInactivity"],
+    },
   );
 
   // Cloudflare's own identity provider, restricted to account members: the
