@@ -1,0 +1,71 @@
+packages:
+  # Pulumi programs (infra/cloudflare, infra/github) are workspace packages so
+  # they share the root lockfile and toolchain. Pulumi's nodejs runtime resolves
+  # `@pulumi/*` from the node_modules that pnpm links into each project.
+  - infra/*
+
+# Keep pnpm's content-addressable store inside node_modules, so the store and
+# the packages it hardlinks into share one filesystem. In the dev container
+# node_modules is a named volume, and on Docker Desktop every volume and bind
+# mount is a separate filesystem (hardlinks across them fail with EXDEV).
+# Relative on purpose: it resolves against the workspace root from any
+# directory, in the container, on the host, and in CI. Same setting as
+# www.spencerwill.com, ucmc.spencerwill.com and flareling.
+storeDir: node_modules/.store
+
+# Quarantine window for newly published versions: refuses to install anything
+# released in the last 7 days. This is the primary supply-chain defense, and it
+# catches publish-compromise incidents before they reach the tree. A
+# just-released version is refused until it ages out. The escape hatch is
+# `minimumReleaseAgeExclude`. Dependabot's cooldowns match it.
+#
+# The same rule applies by hand to the `packageManager` pin in package.json,
+# which this setting does not cover.
+minimumReleaseAge: 10080
+
+# Fails install when a package's new version has weaker publish provenance
+# than an earlier one (e.g. a release that lost trusted publishing, the
+# signature of a hijacked maintainer token).
+trustPolicy: no-downgrade
+
+# Install scripts are opt-in, and pnpm only reads the allowlist from the
+# workspace root.
+allowBuilds:
+  # Pulled in by @pulumi/pulumi. Its postinstall generates the static protobuf
+  # accessors used for gRPC to the Pulumi engine.
+  protobufjs: true
+
+# Every external dependency's version lives here, and packages reference it
+# with `"catalog:"`, so both Pulumi programs run the same provider versions.
+catalogMode: strict
+catalog:
+  # Language and types
+  typescript: ^7.0.2
+  "@types/node": ^24.19.2
+
+  # Infrastructure. Pinned EXACTLY, unlike everything else: a provider release
+  # can change a resource's schema so that an untouched program plans a
+  # replacement (ucmc saw @pulumi/cloudflare 6.21.0 plan to replace a D1
+  # database). Here a replacement could mean the zone, its DNS, or the Resend
+  # domain. Bump each in its own PR and read the `pulumi preview` diff first;
+  # see "Upgrading Pulumi" in the README.
+  "@pulumi/pulumi": 3.268.0
+  "@pulumi/cloudflare": 6.22.0
+  "@pulumi/github": 6.15.0
+
+  # Repo tooling
+  "@biomejs/biome": ^2.5.15
+  "@commitlint/cli": ^21.2.3
+  "@commitlint/config-conventional": ^21.2.3
+  "@commitlint/cz-commitlint": ^21.2.3
+  commitizen: ^4.3.2
+  husky: ^9.1.7
+  inquirer: ^12.11.1
+  lint-staged: ^17.6.0
+
+peerDependencyRules:
+  allowedVersions:
+    # @pulumi/pulumi wants TypeScript < 7 only for its ts-node runner. Both
+    # Pulumi projects set `typescript: false` and run on Node's native type
+    # stripping, so the TypeScript 7 in the catalog is never loaded by Pulumi.
+    "@pulumi/pulumi>typescript": "7"

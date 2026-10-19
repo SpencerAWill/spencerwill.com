@@ -1,0 +1,11 @@
+name: spencerwill-shared
+description: Zone- and account-wide Cloudflare resources shared by every app on spencerwill.com
+runtime:
+  name: nodejs
+  options:
+    # Node 24 strips TypeScript types natively, so Pulumi runs index.ts
+    # directly with no ts-node. That also sidesteps ts-node needing the
+    # TypeScript JS API, which TypeScript 7 no longer ships. Code here must use
+    # erasable syntax only (no enums or namespaces); tsconfig enforces it.
+    typescript: false
+    packagemanager: pnpm

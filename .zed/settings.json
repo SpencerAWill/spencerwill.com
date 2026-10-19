@@ -1,0 +1,41 @@
+// Zed settings for this repo, the counterpart to the VS Code customizations in
+// .devcontainer/devcontainer.json. Indentation, line endings, and whitespace
+// come from .editorconfig, which Zed reads natively, so none of that is here.
+{
+  "format_on_save": "on",
+
+  // Biome is the whole toolchain (lint, format, import sorting), so every
+  // language it owns is pointed at its language server explicitly.
+  // `require_config_file` keeps it from silently formatting with built-in
+  // defaults anywhere a config is missing.
+  "lsp": {
+    "biome": {
+      "settings": {
+        "require_config_file": true
+      }
+    }
+  },
+
+  "languages": {
+    "TypeScript": {
+      "formatter": { "language_server": { "name": "biome" } },
+      "code_actions_on_format": { "source.organizeImports.biome": true }
+    },
+    "JavaScript": {
+      "formatter": { "language_server": { "name": "biome" } },
+      "code_actions_on_format": { "source.organizeImports.biome": true }
+    },
+    "JSON": {
+      "formatter": { "language_server": { "name": "biome" } }
+    },
+    "JSONC": {
+      "formatter": { "language_server": { "name": "biome" } }
+    }
+  },
+
+  // Keeps the editor responsive on the dev container's bind mount. If a commit
+  // ever leaves every file showing as deleted (Zed's git integration racing
+  // .git/index.lock; see .husky/pre-commit), `git reset` (mixed, never
+  // --hard) restores the index.
+  "file_scan_exclusions": ["**/.git", "**/node_modules", "**/.DS_Store"]
+}

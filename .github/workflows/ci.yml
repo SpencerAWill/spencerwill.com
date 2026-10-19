@@ -1,0 +1,311 @@
+# Checks every change, previews it against prod on PRs, then applies main to
+# prod once a reviewer approves that same run (the `prod` environment). Check
+# jobs are `check: <what>`; only `required` (which waits on every check) is a
+# required status check, so renaming a check never breaks the ruleset.
+#
+# Every third-party action is pinned to a commit SHA with its release in a
+# trailing comment. A tag is mutable, and jobs here hand Cloudflare and Pulumi
+# tokens to these actions. Dependabot raises the bumps as PRs.
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened, ready_for_review]
+  push:
+    branches: [main]
+
+# Jobs opt in to the scopes they need.
+permissions: {}
+
+# One in-flight run per PR, so a fixup push cancels the superseded run. Runs on
+# main are never cancelled, so every commit there gets a complete result (and
+# `pulumi up` is never cut off; the deploy job also queues on its own group).
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  # Decides once which kinds of files a PR touched. Downstream jobs gate on
+  # these outputs, and a skipped job still satisfies the required check, so a
+  # docs-only PR does not wait on a preview. Push runs skip detection and run
+  # everything.
+  paths:
+    name: "check: changes"
+    if: github.event.pull_request.draft != true
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    permissions:
+      contents: read
+      pull-requests: read # paths-filter lists the PR's files via the API
+    outputs:
+      code: ${{ github.event_name == 'push' || steps.filter.outputs.code == 'true' }}
+      workflows: ${{ github.event_name == 'push' || steps.filter.outputs.workflows == 'true' }}
+    steps:
+      - id: filter
+        if: github.event_name == 'pull_request'
+        uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4.0.3
+        with:
+          # A file matches `code` only if it matches every pattern, so the
+          # negations carve out files that cannot change a check's result.
+          predicate-quantifier: every
+          filters: |
+            code:
+              - '**'
+              - '!**/*.md'
+              - '!LICENSE'
+              - '!.devcontainer/**'
+              - '!.zed/**'
+            # One brace pattern, not a list: `predicate-quantifier: every`
+            # applies to this filter too, and no file matches two paths.
+            workflows:
+              - '.github/{workflows/**,zizmor.yml}'
+
+  # Walks the whole lockfile, so it runs on every change rather than by path.
+  audit:
+    name: "check: audit"
+    needs: paths
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # Reads the pnpm version from `packageManager` in package.json.
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm audit --audit-level high --prod
+
+  # Secret scan over the full history, on every run: a credential committed and
+  # then deleted is still in the history GitHub serves. The pre-commit hook runs
+  # the same scan on staged changes; this is the backstop. Installed from the
+  # pinned release with a SHA-256 check (the version matches
+  # .devcontainer/Dockerfile).
+  secrets:
+    name: "check: secrets"
+    needs: paths
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    env:
+      GITLEAKS_VERSION: 8.30.1
+      GITLEAKS_SHA256: 551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Install gitleaks
+        run: |
+          curl -fsSL -o gitleaks.tar.gz \
+            "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
+          echo "${GITLEAKS_SHA256}  gitleaks.tar.gz" | sha256sum --check --strict
+          tar xzf gitleaks.tar.gz gitleaks
+          ./gitleaks version
+
+      - name: gitleaks
+        run: ./gitleaks git --redact --no-banner --verbose .
+
+  # Biome (lint, format, imports) and tsc over both Pulumi programs.
+  verify:
+    name: "check: verify"
+    needs: paths
+    if: needs.paths.outputs.code == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Lint
+        run: pnpm check
+
+      - name: Type check
+        run: pnpm typecheck
+
+  # Static analysis for the workflows themselves, which nothing else checks.
+  # actionlint covers the schema, expression types and (through shellcheck,
+  # preinstalled on ubuntu-latest) every `run:` body. zizmor covers security
+  # shapes: template injection, credential persistence, dangerous triggers.
+  # Both come from pinned release tarballs verified against SHA-256.
+  workflow-lint:
+    name: "check: workflows"
+    needs: paths
+    if: needs.paths.outputs.workflows == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    env:
+      ACTIONLINT_VERSION: 1.7.12
+      ACTIONLINT_SHA256: 8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8
+      ZIZMOR_VERSION: 1.30.1
+      ZIZMOR_SHA256: e65324f4430c2717591937edcec90ccbefaf14c174f8ec9415e03ca875b46e1a
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install actionlint
+        run: |
+          curl -fsSL -o actionlint.tar.gz \
+            "https://github.com/rhysd/actionlint/releases/download/v${ACTIONLINT_VERSION}/actionlint_${ACTIONLINT_VERSION}_linux_amd64.tar.gz"
+          echo "${ACTIONLINT_SHA256}  actionlint.tar.gz" | sha256sum --check --strict
+          tar xzf actionlint.tar.gz actionlint
+          ./actionlint --version
+
+      - name: Install zizmor
+        run: |
+          curl -fsSL -o zizmor.tar.gz \
+            "https://github.com/zizmorcore/zizmor/releases/download/v${ZIZMOR_VERSION}/zizmor-x86_64-unknown-linux-gnu.tar.gz"
+          echo "${ZIZMOR_SHA256}  zizmor.tar.gz" | sha256sum --check --strict
+          tar xzf zizmor.tar.gz zizmor
+          ./zizmor --version
+
+      - name: actionlint
+        run: ./actionlint -color
+
+      # Any future ignore goes in .github/zizmor.yml with its reason.
+      - name: zizmor
+        run: ./zizmor --color always .github/workflows/
+
+  # Read-only diff of the prod stack against live Cloudflare, posted on the PR.
+  #
+  # Runs under the `preview` environment, not `prod`, and that is a security
+  # boundary: any PR branch can trigger this job, so its CLOUDFLARE_API_TOKEN
+  # can only read (infra/github mints it). The write token stays in `prod`,
+  # which only main can use, behind a reviewer.
+  #
+  # Skipped for PRs from forks, which GitHub gives no secrets (the job would
+  # fail on an empty token), and until PULUMI_CI_ENABLED is "true".
+  preview:
+    name: "check: pulumi preview"
+    needs: [paths, verify]
+    if: >-
+      github.event_name == 'pull_request' &&
+      github.event.pull_request.head.repo.fork != true &&
+      vars.PULUMI_CI_ENABLED == 'true' &&
+      needs.paths.outputs.code == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: preview
+    permissions:
+      contents: read
+      pull-requests: write # the preview comment
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      # Same CLI version as @pulumi/pulumi in pnpm-workspace.yaml; bump both.
+      - uses: pulumi/actions@8e5e406f4007fca908480587cb9893c07090f58d # v7.0.0
+        with:
+          pulumi-version: 3.268.0
+          command: preview
+          stack-name: SpencerAWill/spencerwill-shared/prod
+          work-dir: infra/cloudflare
+          diff: true
+          comment-on-pr: true
+        env:
+          PULUMI_ACCESS_TOKEN: ${{ secrets.PULUMI_ACCESS_TOKEN }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+
+  # The one required status check (infra/github's ruleset). It passes when
+  # every check passed or was skipped as irrelevant, and fails if any failed
+  # or was cancelled. One aggregate rather than a list of names, because a
+  # required check that never ran would leave the PR waiting.
+  required:
+    name: required
+    needs: [paths, audit, secrets, verify, workflow-lint, preview]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    permissions: {}
+    steps:
+      - name: Every check passed or was skipped
+        env:
+          RESULTS: ${{ join(needs.*.result, ' ') }}
+        run: |
+          echo "Results: $RESULTS"
+          case " $RESULTS " in
+            *" failure "* | *" cancelled "*) exit 1 ;;
+          esac
+
+  # `pulumi up` on prod for every push to main, once a reviewer approves the
+  # `prod` environment (a waiting run uses no runner time). Reject the approval
+  # for a push that shouldn't apply; the next approved run applies everything
+  # merged since. Consumers (www, ucmc, flareling) read this stack's outputs,
+  # so a change they depend on must be applied here before theirs.
+  deploy:
+    name: "deploy: prod"
+    needs: required
+    if: >-
+      github.event_name == 'push' && github.ref == 'refs/heads/main' &&
+      vars.PULUMI_CI_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    environment: prod
+    # One apply at a time, never cancelled halfway: a half-applied `pulumi up`
+    # is a state to reconcile, not a no-op.
+    concurrency:
+      group: deploy-prod
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - uses: pulumi/actions@8e5e406f4007fca908480587cb9893c07090f58d # v7.0.0
+        with:
+          pulumi-version: 3.268.0
+          command: up
+          stack-name: SpencerAWill/spencerwill-shared/prod
+          work-dir: infra/cloudflare
+          diff: true
+        env:
+          PULUMI_ACCESS_TOKEN: ${{ secrets.PULUMI_ACCESS_TOKEN }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}

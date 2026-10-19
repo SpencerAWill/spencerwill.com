@@ -1,0 +1,37 @@
+{
+  "name": "spencerwill.com",
+  "version": "0.0.0",
+  "description": "Shared infrastructure for the spencerwill.com zone and Cloudflare account",
+  "private": true,
+  "type": "module",
+  "license": "MIT",
+  "author": "Spencer Will",
+  "packageManager": "pnpm@12.9.1",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "typecheck": "pnpm -r typecheck",
+    "check": "biome check --error-on-warnings",
+    "check:fix": "biome check --write",
+    "format": "biome format --write",
+    "lint": "biome lint",
+    "commit": "cz",
+    "prepare": "husky"
+  },
+  "config": {
+    "commitizen": {
+      "path": "@commitlint/cz-commitlint"
+    }
+  },
+  "devDependencies": {
+    "@biomejs/biome": "catalog:",
+    "@commitlint/cli": "catalog:",
+    "@commitlint/config-conventional": "catalog:",
+    "@commitlint/cz-commitlint": "catalog:",
+    "commitizen": "catalog:",
+    "husky": "catalog:",
+    "inquirer": "catalog:",
+    "lint-staged": "catalog:"
+  }
+}

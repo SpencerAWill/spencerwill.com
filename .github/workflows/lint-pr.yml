@@ -1,0 +1,46 @@
+name: Lint PR
+
+# Squash merges take the PR title as the commit message on main, so the title
+# has to pass the same commitlint rules the commit-msg hook applies locally.
+on:
+  pull_request:
+    branches: [main]
+    # Not `synchronize`: pushing commits doesn't change the title.
+    types: [opened, edited, reopened]
+
+permissions: {}
+
+concurrency:
+  group: lint-pr-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  title:
+    name: Validate PR title
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      # `pull_request` rather than `pull_request_target`: the title is already
+      # in the event payload, so no token is needed to read it, and running the
+      # repo's own commitlint keeps one source of truth (commitlint.config.js).
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      # The title goes through env, never `${{ }}` inside the script: it is
+      # attacker-controlled text and would otherwise be spliced in as shell.
+      - name: commitlint
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: printf '%s\n' "$PR_TITLE" | pnpm exec commitlint --strict

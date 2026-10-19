@@ -1,0 +1,72 @@
+# Dependabot version updates.
+# https://docs.github.com/code-security/dependabot/working-with-dependabot/dependabot-options-reference
+#
+# Every `cooldown` is at least 7 days to match `minimumReleaseAge: 10080` in
+# pnpm-workspace.yaml. pnpm refuses versions younger than that, so a PR for one
+# would fail to install. Majors soak for 30 days where the ecosystem supports
+# per-semver cooldowns (npm).
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 10
+    cooldown:
+      default-days: 7
+      semver-major-days: 30
+    ignore:
+      # Matches the Node major in .nvmrc (the runtime CI and the dev container
+      # use), so it moves with that, by hand, not on its own.
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
+      # @commitlint/cz-commitlint peers on inquirer ^9 to ^12. Lift this once a
+      # release accepts a newer major.
+      - dependency-name: "inquirer"
+        update-types: ["version-update:semver-major"]
+    commit-message:
+      prefix: chore
+      prefix-development: chore
+      include: scope
+    groups:
+      # Deliberately no group for @pulumi/*. They are pinned exactly and each
+      # bump gets its own PR, so its `pulumi preview` diff is read on its own
+      # (see "Upgrading Pulumi" in the README).
+      tooling:
+        patterns:
+          - "@biomejs/*"
+          - "@commitlint/*"
+          - "commitizen"
+          - "husky"
+          - "inquirer"
+          - "lint-staged"
+          - "typescript"
+          - "@types/node"
+
+  # Actions are pinned to commit SHAs, so this is what moves them forward.
+  # pulumi/actions' `pulumi-version` input in ci.yml is not covered: bump it
+  # with @pulumi/pulumi.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
+    commit-message:
+      prefix: ci
+    groups:
+      github-actions:
+        patterns: ["*"]
+
+  # Dev container features, through .devcontainer/devcontainer-lock.json.
+  - package-ecosystem: devcontainers
+    directory: /
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
+    commit-message:
+      prefix: build
+    groups:
+      devcontainers:
+        patterns: ["*"]

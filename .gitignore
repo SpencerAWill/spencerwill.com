@@ -1,0 +1,17 @@
+# Dependencies (pnpm's store lives inside node_modules; see pnpm-workspace.yaml)
+node_modules/
+.pnpm-store
+
+# Logs
+*.log
+
+# TypeScript cache
+*.tsbuildinfo
+
+# dotenv environment variable files
+.env
+.env.*
+!.env.example
+
+# OS
+.DS_Store

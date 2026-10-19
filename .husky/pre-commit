@@ -1,0 +1,45 @@
+# Without this, a failing secret scan would be masked by the exit status of the
+# command after it.
+set -e
+
+# Refuse a commit that deletes an implausible number of files. That is what a
+# truncated index looks like: under Zed, git's index writes can lose a race
+# with the editor's lock polling (see the --no-stash note below), and the index
+# is left listing only some files, so every other tracked file shows as staged
+# for deletion. This happened twice in flareling, once from a plain `git add`,
+# which --no-stash does not cover. The files are still on disk when it happens,
+# so `git reset` (mixed, never --hard) restores the index.
+#
+# For a deletion that really is this large: ALLOW_MASS_DELETE=1 git commit ...
+max_deletions=20
+deletions=$(git diff --cached --diff-filter=D --name-only | wc -l | tr -d ' ')
+if [ "$deletions" -gt "$max_deletions" ] && [ "${ALLOW_MASS_DELETE:-}" != "1" ]; then
+  echo "pre-commit: this commit deletes $deletions files (limit $max_deletions)." >&2
+  echo "  If you did not mean to delete them, the index is probably truncated:" >&2
+  echo "  run 'git reset' (keeps your files), then stage again." >&2
+  echo "  If you did, commit with ALLOW_MASS_DELETE=1." >&2
+  exit 1
+fi
+
+# Secret scan of the staged diff. gitleaks is a standalone binary installed by
+# the dev container's Dockerfile, so a commit made from a host without it warns
+# and continues; the `check: secrets` job in ci.yml scans every push and PR regardless.
+if command -v gitleaks >/dev/null 2>&1; then
+  gitleaks git --pre-commit --staged --redact --no-banner
+else
+  echo "pre-commit: gitleaks not found, skipping the secret scan (CI still runs it)" >&2
+fi
+
+# `--no-stash` is deliberate. lint-staged's default backup stash does several
+# index writes per commit (stash create, write-tree, checkout-index, apply).
+# With Zed attached to the dev container, its git integration takes
+# .git/index.lock about three times a second (measured in ucmc.spencerwill.com,
+# 0 times with VS Code), so one of those writes loses the race often. Losing
+# partway through leaves a truncated index that shows every tracked file as
+# deleted: seen in flareling, and in ucmc once in a commit that removed 827 files.
+#
+# The trade-off: if Biome fails, the working tree keeps whatever it already
+# rewrote instead of being reverted, which is recoverable by fixing and
+# committing again. `--hide-partially-staged` stays on (the default), so
+# unstaged edits are still kept out of the commit.
+pnpm exec lint-staged --no-stash
