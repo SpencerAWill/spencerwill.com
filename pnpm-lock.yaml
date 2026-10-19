@@ -210,6 +210,9 @@ catalogs:
     '@pulumi/pulumi':
       specifier: 3.268.0
       version: 3.268.0
+    '@pulumi/pulumiservice':
+      specifier: 1.4.0
+      version: 1.4.0
     '@types/node':
       specifier: ^24.19.2
       version: 24.19.2
@@ -285,6 +288,9 @@ importers:
       '@pulumi/pulumi':
         specifier: 'catalog:'
         version: 3.268.0(supports-color@7.2.0)(typescript@7.0.2)
+      '@pulumi/pulumiservice':
+        specifier: 'catalog:'
+        version: 1.4.0(supports-color@7.2.0)(typescript@7.0.2)
     devDependencies:
       '@types/node':
         specifier: 'catalog:'
@@ -835,6 +841,9 @@ packages:
         optional: true
       typescript:
         optional: true
+
+  '@pulumi/pulumiservice@1.4.0':
+    resolution: {integrity: sha512-/dTBnDfsON/FEtmvh4U2ooMmPklaYu+/CuIZSSCDAoPrfYSybLs7sJh6XUDCx7d7TKejLR3i3//a3u51Uxuorw==}
 
   '@sigstore/bundle@4.0.0':
     resolution: {integrity: sha512-NwCl5Y0V6Di0NexvkTqdoVfmjTaQwoLM236r89KEojGmq/jMls8S+zb7yOwAPdXvbwfKDlP+lmXgAL4vKSQT+A==}
@@ -2740,6 +2749,14 @@ snapshots:
       typescript: 7.0.2
     transitivePeerDependencies:
       - supports-color
+
+  '@pulumi/pulumiservice@1.4.0(supports-color@7.2.0)(typescript@7.0.2)':
+    dependencies:
+      '@pulumi/pulumi': 3.268.0(supports-color@7.2.0)(typescript@7.0.2)
+    transitivePeerDependencies:
+      - supports-color
+      - ts-node
+      - typescript
 
   '@sigstore/bundle@4.0.0':
     dependencies:

@@ -4,10 +4,14 @@ import {
   cloudflareAccountId,
   cloudflareZoneId,
   mintCloudflareTokens,
+  owner,
   prodReviewerIds,
   pulumiCiEnabled,
+  pulumiOrganization,
+  pulumiUserLogin,
   repositoryName,
 } from "./src/config.ts";
+import { createPulumiOidcIssuer } from "./src/pulumi-oidc.ts";
 import { repository } from "./src/repository.ts";
 
 /**
@@ -78,6 +82,15 @@ if (tokens) {
     });
   }
 }
+
+// ci.yml's Pulumi jobs log in through this instead of a stored token. Must
+// list every environment a Pulumi job in ci.yml declares.
+createPulumiOidcIssuer({
+  organization: pulumiOrganization,
+  userLogin: pulumiUserLogin,
+  repository: `${owner}/${repositoryName}`,
+  environments: ["preview", "prod"],
+});
 
 // Deliberately no token outputs. PR previews hold PULUMI_ACCESS_TOKEN, which
 // can read this stack's outputs with --show-secrets; exporting the write token

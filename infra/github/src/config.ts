@@ -9,7 +9,7 @@ type Visibility = (typeof visibilities)[number];
 
 // Fail fast if unset. Without it the provider silently targets whichever
 // account the token belongs to.
-githubConfig.require("owner");
+export const owner = githubConfig.require("owner");
 export const repositoryName = config.require("repository");
 export const description = config.get("description") ?? "";
 
@@ -51,6 +51,13 @@ if (pulumiCiEnabled && prodReviewerIds.length === 0) {
     "pulumiCiEnabled needs prodReviewerIds: without a reviewer every push to main would apply to prod unattended.",
   );
 }
+
+/**
+ * The Pulumi Cloud organization ci.yml's jobs log in to through OIDC, and the
+ * user whose personal token they get (see src/pulumi-oidc.ts).
+ */
+export const pulumiOrganization = config.require("pulumiOrganization");
+export const pulumiUserLogin = config.require("pulumiUserLogin");
 
 /** Cloudflare account the CI tokens are minted in. */
 export const cloudflareAccountId = config.require("cloudflareAccountId");

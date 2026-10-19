@@ -74,8 +74,9 @@ Both Pulumi jobs run only when the `PULUMI_CI_ENABLED` repo variable is `true`. 
 - **A ruleset on `main`:** no deletion or force pushes, linear history, PRs with resolved threads, and the `required` check. Repository admins can bypass it.
 - **Environments:** `preview` (any branch, no reviewer) and `prod` (`main` only, with `prodReviewerIds` as required reviewers).
 - **Cloudflare CI tokens.** It mints a read token and a write token with the same reach and writes each into its environment as `CLOUDFLARE_API_TOKEN`. They are never stack outputs, so nobody copies them, and destroying the stack revokes them. To rotate one, run `pnpm apply --replace <token URN>`. The permissions are in `infra/github/src/cloudflare-tokens.ts`. Add a permission there, in both tokens, in the same PR as the resource that needs it.
+- **Pulumi Cloud OIDC.** It registers GitHub Actions as an OIDC issuer in Pulumi Cloud, with one allow policy per environment (`repo:SpencerAWill/spencerwill.com:environment:preview` and `:prod`). ci.yml's Pulumi jobs trade their GitHub ID token for a Pulumi token that expires within an hour (`pulumi/auth-actions`), so no Pulumi token is stored in GitHub. The issuer is the account's only one for GitHub; if ucmc or flareling move to OIDC, their policies go in `infra/github/src/pulumi-oidc.ts` too.
 
-It does not manage the workflow files, `dependabot.yml`, or `PULUMI_ACCESS_TOKEN`, which is set by hand.
+It does not manage the workflow files or `dependabot.yml`.
 
 It depends on the repo being public. On GitHub Free, rulesets, environments, and required reviewers are available only on public repos, so the program refuses `visibility: private` instead of leaving `prod` ungated.
 
@@ -91,11 +92,7 @@ Done on 2026-10-18, and recorded here for rebuilding from scratch. Create both s
    pnpm preview && pnpm apply
    ```
 
-2. Add a Pulumi access token as the repository secret `PULUMI_ACCESS_TOKEN`:
-
-   ```sh
-   gh secret set PULUMI_ACCESS_TOKEN
-   ```
+2. Nothing for Pulumi itself: the apply above also registered the OIDC issuer that CI logs in through. (Until 2026-10-19 CI used a stored `PULUMI_ACCESS_TOKEN` secret instead.)
 
 3. Turn the Pulumi jobs on. Set `pulumiCiEnabled: "true"` in `infra/github/Pulumi.main.yaml`, merge that, then run `pnpm apply` in `infra/github`.
 
@@ -103,7 +100,7 @@ Done on 2026-10-18, and recorded here for rebuilding from scratch. Create both s
 
 The Cloudflare write token can reach every site on the zone, so it lives in exactly one place: the `prod` environment's secret, which only a run on `main` approved by a reviewer can read. `infra/github` never exports it, and the bootstrap token in `Pulumi.main.yaml` is encrypted with a key only Pulumi Cloud holds.
 
-`PULUMI_ACCESS_TOKEN` is the weak point, and it can't be fixed on the Pulumi free tier. It is a repository secret, so any job can use it, including `check: pulumi preview` on any same-repo PR branch. It is a personal token, with all of its owner's access, and stack-scoped tokens need a paid Pulumi edition. A PR branch could therefore:
+CI's Pulumi login is the weak point, and on this Pulumi edition it can only be narrowed, not closed. OIDC narrows it: no Pulumi token is stored in GitHub, and only jobs in the `preview` or `prod` environment of this repo can get one, for at most an hour. But the only token type this edition offers through OIDC is a personal token, with all of its owner's access; stack-scoped team tokens need Pulumi Pro. And `preview` has to accept every PR branch. So a same-repo PR branch can mint a token in `preview` and could:
 
 - Read this stack's decrypted secrets, such as the Resend API keys once #2 lands. A preview has to decrypt them anyway.
 - Write Pulumi state for any stack the token owner can reach.
