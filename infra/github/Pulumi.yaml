@@ -1,0 +1,9 @@
+name: spencerwill-shared-github
+description: GitHub repo settings, safeguards, and CI secrets for this repo
+runtime:
+  name: nodejs
+  options:
+    # Node 24 strips TypeScript types natively, so Pulumi runs index.ts
+    # directly with no ts-node (see infra/cloudflare/Pulumi.yaml).
+    typescript: false
+    packagemanager: pnpm

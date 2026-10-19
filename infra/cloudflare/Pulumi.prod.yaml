@@ -1,0 +1,8 @@
+config:
+  # The account and zone every app on spencerwill.com lives in
+  # (www.spencerwill.com, ucmc.spencerwill.com, flareling). Unlike those
+  # programs, this one owns zone-wide resources, so it is the only place a
+  # ZoneSetting, WAF rule, or other zone-wide resource belongs.
+  spencerwill-shared:accountId: d57880630b3277f59331318b53f323b6
+  spencerwill-shared:zoneId: 6bfb4d1d3134e6d765aef413094cd28f
+  spencerwill-shared:zoneName: spencerwill.com

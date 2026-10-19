@@ -1,0 +1,25 @@
+# The one formatting contract every editor reads. Biome reads it too, through
+# formatter.useEditorconfig in biome.json. Keep the [*] block in sync with
+# biome.json; where they disagree biome.json wins on save.
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+indent_style = space
+indent_size = 2
+insert_final_newline = true
+trim_trailing_whitespace = true
+# Biome's default lineWidth, so editors draw the wrap guide where Biome breaks.
+max_line_length = 80
+
+# Two trailing spaces are a hard line break in Markdown.
+[*.md]
+trim_trailing_whitespace = false
+
+# Generated, never hand-edited.
+[pnpm-lock.yaml]
+indent_size = unset
+max_line_length = unset
+insert_final_newline = unset
+trim_trailing_whitespace = unset

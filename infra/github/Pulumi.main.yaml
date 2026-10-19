@@ -1,0 +1,20 @@
+config:
+  github:owner: SpencerAWill
+  spencerwill-shared-github:repository: spencerwill.com
+  spencerwill-shared-github:description: "Shared infrastructure for spencerwill.com: the Resend sending domain, root email DNS, and other zone- and account-wide settings"
+  # Public, which is what lets `prod` require a reviewer on GitHub Free.
+  spencerwill-shared-github:visibility: public
+  # The aggregate job in ci.yml; it waits on every `check:` job, so renaming
+  # one of those never breaks the ruleset.
+  spencerwill-shared-github:requiredChecks: '["required"]'
+  # Who approves `deploy: prod` (GitHub user ids: gh api users/<login> -q .id).
+  spencerwill-shared-github:prodReviewerIds: "[43732866]"
+  # Turns on ci.yml's Pulumi jobs, `preview` and `deploy` (the
+  # PULUMI_CI_ENABLED repo variable). Off until the CI secrets exist; see
+  # "First-time setup" in the README.
+  spencerwill-shared-github:pulumiCiEnabled: "false"
+  # Where the CI tokens are minted, and the zone their zone permissions are
+  # scoped to. Same values as infra/cloudflare's prod stack. Minting runs only
+  # once `cloudflare:apiToken` is set here (as a secret).
+  spencerwill-shared-github:cloudflareAccountId: d57880630b3277f59331318b53f323b6
+  spencerwill-shared-github:cloudflareZoneId: 6bfb4d1d3134e6d765aef413094cd28f

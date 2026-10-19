@@ -1,0 +1,47 @@
+# Compose rather than a bare image, matching flareling, so the named volumes
+# below are namespaced by the project name and never collide with another
+# repo's dev container. There are no sidecar services and no ports: this repo
+# runs Pulumi, not a dev server.
+name: spencerwill-shared
+
+services:
+  devcontainer:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        NODE_VARIANT: 24-bookworm
+        USERNAME: dev
+    # Gives `docker ps` and the shell prompt something meaningful to show
+    # instead of a container id.
+    hostname: spencerwill-shared-dev
+    volumes:
+      - ..:/workspace:cached
+      # node_modules on a container-native named volume rather than the macOS
+      # bind mount, where bulk metadata operations are far slower. pnpm's store
+      # lives inside this volume too (`storeDir: node_modules/.store` in
+      # pnpm-workspace.yaml), so its hardlinks stay on one filesystem.
+      - node-modules:/workspace/node_modules
+      # Claude Code state: transcripts, prompt history, and (via
+      # CLAUDE_CONFIG_DIR in the Dockerfile) .claude.json. Survives rebuilds,
+      # so `claude --resume` still works.
+      - claude-data:/home/dev/.claude
+      - command-history:/commandhistory
+      # Pulumi login and provider plugin cache. Persisting it avoids
+      # re-downloading providers (hundreds of MB) on every rebuild. It does
+      # keep the Pulumi token in a local volume; run `pulumi logout` before
+      # deleting the container if that matters.
+      - pulumi-config:/home/dev/.pulumi
+      # Inherit the host's `gh auth login`. This only carries a token if the
+      # host stored it in hosts.yml. On macOS, run
+      # `gh auth login --insecure-storage` on the host once, since Keychain
+      # tokens do not cross the mount. initialize.sh pre-creates the source.
+      # infra/github's scripts read the token through `gh auth token`.
+      - ${HOME}/.config/gh:/home/dev/.config/gh:cached
+    command: sleep infinity
+
+volumes:
+  node-modules:
+  claude-data:
+  command-history:
+  pulumi-config:
