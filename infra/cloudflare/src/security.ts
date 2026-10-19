@@ -18,11 +18,14 @@ import * as cloudflare from "@pulumi/cloudflare";
  *   the like) stay as set in the dashboard until there's a reason to own one.
  */
 export function manageSecurity({ zoneId }: { readonly zoneId: string }) {
+  // retainOnDelete on every setting: a zone setting always exists, so taking
+  // one out of this program (or renaming it here) should only stop managing
+  // it, never reset a zone-wide setting to the provider's default.
   const setting = (settingId: string, value: unknown) =>
     new cloudflare.ZoneSetting(
       `setting-${settingId.replaceAll("_", "-")}`,
       { zoneId, settingId, value },
-      { import: `${zoneId}/${settingId}` },
+      { import: `${zoneId}/${settingId}`, retainOnDelete: true },
     );
 
   // ---- TLS ----
@@ -77,7 +80,8 @@ export function manageSecurity({ zoneId }: { readonly zoneId: string }) {
       cfRobotsVariant: "off",
       aiBotsMigrationOptOut: false,
     },
-    { import: zoneId },
+    // Same reasoning as the zone settings above.
+    { import: zoneId, retainOnDelete: true },
   );
 
   // The zone's rate-limiting entrypoint, a singleton per phase: this resource
@@ -109,6 +113,10 @@ export function manageSecurity({ zoneId }: { readonly zoneId: string }) {
         },
       ],
     },
-    { import: `zones/${zoneId}/080cdde487aa4db99ac1fbc1b6bfe273` },
+    // Protected: deleting it removes the zone's leaked-credential blocking.
+    {
+      protect: true,
+      import: `zones/${zoneId}/080cdde487aa4db99ac1fbc1b6bfe273`,
+    },
   );
 }
