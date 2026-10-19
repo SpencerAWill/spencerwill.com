@@ -1,15 +1,13 @@
-import * as path from "node:path";
-import { fileURLToPath } from "node:url";
 import * as cloudflare from "@pulumi/cloudflare";
 import * as command from "@pulumi/command";
 import * as pulumi from "@pulumi/pulumi";
 
-const SCRIPT = path.join(
-  path.dirname(fileURLToPath(import.meta.url)),
-  "..",
-  "scripts",
-  "resend.mjs",
-);
+// Relative to infra/cloudflare, where Pulumi runs local commands from (the
+// program directory), in CI and locally alike. Never an absolute path: the
+// command string is saved in state, so a path that differs between machines
+// (CI's /home/runner/..., a laptop's /Users/...) changes the command and
+// re-runs it, and re-running create-api-key rotates every app's sending key.
+const SCRIPT = "scripts/resend.mjs";
 
 interface ResendRecord {
   record: string;
@@ -69,7 +67,7 @@ export class ResendDomain extends pulumi.ComponentResource {
     super("spencerwill:resend:Domain", name, {}, opts);
 
     const parent = { parent: this };
-    const runScript = `node ${JSON.stringify(SCRIPT)}`;
+    const runScript = `node ${SCRIPT}`;
 
     // Creates the domain, or reads it back if it already exists, so a run
     // that failed further down can be retried. Protected: deleting it in
