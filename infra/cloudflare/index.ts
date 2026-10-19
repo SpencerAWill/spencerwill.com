@@ -1,5 +1,6 @@
 import * as pulumi from "@pulumi/pulumi";
 import { ResendDomain } from "./src/resend.ts";
+import { manageZeroTrust } from "./src/zero-trust.ts";
 import { manageZone } from "./src/zone.ts";
 
 /**
@@ -14,7 +15,7 @@ import { manageZone } from "./src/zone.ts";
  *
  * Scope, tracked in issues:
  *   #2  shared Resend sending domain and per-app keys (below)
- *   #3  Zero Trust organization and login methods
+ *   #3  Zero Trust organization and login methods (src/zero-trust.ts)
  *   #4  zone security settings (WAF skip rule for CI smoke tests)
  *   #5  the zone itself and the DNS records nobody else owns (src/zone.ts)
  *   #6  DMARC
@@ -37,6 +38,16 @@ export { accountId, zoneId, zoneName };
 
 // ---- The zone and its unowned DNS records (#5) ----
 manageZone({ accountId, zoneId, zoneName });
+
+// ---- Zero Trust organization (#3) ----
+const zeroTrust = manageZeroTrust({ accountId });
+
+/**
+ * The Zero Trust team domain (`<team>.cloudflareaccess.com`), which issues
+ * the Access JWTs apps verify. For ucmc's and flareling's dev outboxes, which
+ * set it in their own stack config today.
+ */
+export const accessTeamDomain = zeroTrust.teamDomain;
 
 // ---- Resend (#2) ----
 //

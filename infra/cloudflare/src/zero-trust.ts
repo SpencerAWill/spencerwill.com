@@ -1,0 +1,52 @@
+import * as cloudflare from "@pulumi/cloudflare";
+
+/**
+ * The account's Zero Trust organization and its login methods (#3). Shared by
+ * every app's Access applications (ucmc's and flareling's dev outboxes), which
+ * stay in each app's own stack. This repo owns only the organization they
+ * live in.
+ *
+ * Both were set up by hand (2026-10-16) and are imported with their values as
+ * they were then. Both are protected: deleting the organization or its only
+ * login method locks everyone out of every Access application.
+ */
+export function manageZeroTrust({ accountId }: { readonly accountId: string }) {
+  const organization = new cloudflare.ZeroTrustOrganization(
+    "zero-trust-organization",
+    {
+      accountId,
+      name: "late-hat-fec1.cloudflareaccess.com",
+      // The team domain apps' Access JWTs are issued by. Changing it breaks
+      // every app's token verification until they re-read `accessTeamDomain`.
+      authDomain: "late-hat-fec1.cloudflareaccess.com",
+      isUiReadOnly: false,
+      allowAuthenticateViaWarp: false,
+      warpAuthNonBrowser401: false,
+      denyUnmatchedRequests: false,
+      denyUnmatchedRequestsExemptedZoneNames: [],
+      strictServiceTokenAuth: true,
+    },
+    { protect: true, import: accountId },
+  );
+
+  // Cloudflare's own identity provider, restricted to account members: the
+  // only login method. Organizations created since June 2026 start with it.
+  // Someone outside the account (an outbox viewer, say) needs another method,
+  // such as One-time PIN, added here.
+  new cloudflare.ZeroTrustAccessIdentityProvider(
+    "cloudflare-login",
+    {
+      accountId,
+      // Empty, as Cloudflare created it; the dashboard shows its type instead.
+      name: "",
+      type: "cloudflare",
+      config: { restrictToAccountMembers: true },
+    },
+    {
+      protect: true,
+      import: `accounts/${accountId}/aa0d8fcf-acf2-41e1-a6e9-ca4ded058297`,
+    },
+  );
+
+  return { teamDomain: organization.authDomain };
+}
