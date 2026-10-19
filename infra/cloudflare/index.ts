@@ -1,4 +1,5 @@
 import * as pulumi from "@pulumi/pulumi";
+import { ResendDomain } from "./src/resend.ts";
 
 /**
  * Zone- and account-wide Cloudflare resources for spencerwill.com: things
@@ -10,8 +11,8 @@ import * as pulumi from "@pulumi/pulumi";
  * outputs as they are now, so a new or renamed output must exist here first.
  * The README lists every output and who reads it.
  *
- * Empty at bootstrap. Scope is tracked in issues:
- *   #2  shared Resend sending domain, per-app keys, Email Routing
+ * Scope, tracked in issues:
+ *   #2  shared Resend sending domain and per-app keys (below)
  *   #3  Zero Trust organization and login methods
  *   #4  zone security settings (WAF skip rule for CI smoke tests)
  *   #5  the zone itself and its DNS (until then the zone is NOT managed here)
@@ -32,3 +33,41 @@ const zoneName = cfg.require("zoneName");
 // Echoed from config so consumers can take the account and zone from here
 // instead of repeating the IDs in each of their own stack configs.
 export { accountId, zoneId, zoneName };
+
+// ---- Resend (#2) ----
+//
+// One verified sending domain, the zone itself, shared by every app's prod:
+// the free Resend plan allows one domain per account. Each app gets its own
+// sending key and its own from-address.
+//
+// This can only be applied once ucmc has released the domain slot it held
+// (ucmc.spencerwill.com#298): see that runbook for the order.
+
+const resend = new ResendDomain("resend", {
+  domainName: zoneName,
+  managementApiKey: cfg.requireSecret("resendManagementApiKey"),
+  zoneId,
+  // Names unique in the Resend account, and different from the keys apps
+  // created for themselves before (ucmc's was "ucmc-web-prod-sending"),
+  // because creating a key first deletes any key with the same name.
+  sendingKeys: {
+    ucmc: "spencerwill-shared-ucmc-sending",
+    flareling: "spencerwill-shared-flareling-sending",
+  },
+});
+
+const sendingKey = (app: string) => {
+  const token = resend.sendingKeyTokens[app];
+  if (!token) throw new Error(`no Resend sending key for ${app}`);
+  return token;
+};
+
+/** Read by ucmc.spencerwill.com's prod stack. */
+export const ucmcResendApiKey = sendingKey("ucmc");
+export const ucmcFromEmail = `ucmc@${zoneName}`;
+
+/** For flareling's prod stack. */
+export const flarelingResendApiKey = sendingKey("flareling");
+export const flarelingFromEmail = `flareling@${zoneName}`;
+
+export const resendDomainId = resend.domainId;
