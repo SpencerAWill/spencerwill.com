@@ -56,9 +56,10 @@ jobs:
               - '!LICENSE'
               - '!.devcontainer/**'
               - '!.zed/**'
+            # One brace pattern, not a list: `predicate-quantifier: every`
+            # applies to this filter too, and no file matches two paths.
             workflows:
-              - '.github/workflows/**'
-              - '.github/zizmor.yml'
+              - '.github/{workflows/**,zizmor.yml}'
 
   # Walks the whole lockfile, so it runs on every change rather than by path.
   audit:
