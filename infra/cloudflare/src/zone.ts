@@ -3,14 +3,15 @@ import * as cloudflare from "@pulumi/cloudflare";
 /**
  * The spencerwill.com zone itself, and the DNS records nobody else owns (#5).
  *
- * Every record in the zone has exactly one owner. As of the import
- * (2026-10-19), the zone's 17 records were:
+ * Every record in the zone has exactly one owner. A snapshot from the import
+ * (2026-10-19), not kept current by anything; check the dashboard for today's
+ * records. The zone's 17 records then were:
  *
  * - Here: the apex SPF TXT, and `_dmarc` (DMARC, #6).
  * - Here, through src/resend.ts: Resend's four records.
  * - www.spencerwill.com's stack: the `www` CNAME.
- * - Read-only, made by a Cloudflare feature that owns them, and never declared
- *   anywhere: Email Routing's apex MX records and `cf2024-1._domainkey` DKIM,
+ * - Read-only (Cloudflare marks them so), made by a Cloudflare feature that
+ *   owns them, and never declared anywhere: Email Routing's apex MX records and `cf2024-1._domainkey` DKIM,
  *   and the records behind Worker custom domains (apex, `ucmc`, `dev.ucmc`,
  *   `dev.flareling`) and R2 custom domains (`cdn.ucmc`, `cdn.dev.ucmc`). Each
  *   belongs to the feature (and stack) that created the hostname.
@@ -44,7 +45,13 @@ export function manageZone({
   // stores them; without them every refresh would show a diff.
 
   // Authorizes Cloudflare Email Routing to send for the apex (its forwards).
-  // Resend's SPF is separate, on `send.`.
+  // Resend's SPF is separate, on `send.`. Editable, unlike Email Routing's
+  // read-only MX and DKIM, so it's declared here. If Email Routing is ever
+  // turned off, Cloudflare may remove it; the next preview then shows Pulumi
+  // re-creating it, which is the cue to decide whether it's still wanted.
+  //
+  // Protected, like `dmarc`: deleting either breaks mail for the whole zone.
+  // Protection still allows in-place updates (#6 changes DMARC's policy).
   const apexSpf = new cloudflare.DnsRecord(
     "apex-spf",
     {
@@ -56,7 +63,7 @@ export function manageZone({
       proxied: false,
       comment: "For mail@spencerwill.com",
     },
-    { import: `${zoneId}/c0f6f59e4c52f87a50fdbf60800fd3ba` },
+    { protect: true, import: `${zoneId}/c0f6f59e4c52f87a50fdbf60800fd3ba` },
   );
 
   // Still p=none; stepping it up is #6. Reports go to Cloudflare's DMARC
@@ -73,7 +80,7 @@ export function manageZone({
       proxied: false,
       comment: "Email DMARC record",
     },
-    { import: `${zoneId}/86a62acad36f1503073ee7eedca5a29d` },
+    { protect: true, import: `${zoneId}/86a62acad36f1503073ee7eedca5a29d` },
   );
 
   return { zone, apexSpf, dmarc };

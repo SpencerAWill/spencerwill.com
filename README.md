@@ -36,10 +36,10 @@ This repo is the only place for zone-wide resources: zone settings, WAF and bot 
 
 ### Adding a DNS record
 
-Every record in the zone has exactly one owner (the list is in `infra/cloudflare/src/zone.ts`):
+Every record in the zone has exactly one owner (a dated snapshot of who owns which is in `infra/cloudflare/src/zone.ts`):
 
 - **A record that serves one app's hostname,** in a stack that creates that hostname: that app's stack. For example, www's `www` CNAME is in www.spencerwill.com.
-- **A record made by a Cloudflare feature** (Worker or R2 custom domains, Email Routing's MX and DKIM): nobody declares it. It's read-only and belongs to whatever created the feature.
+- **A read-only record** (Cloudflare marks the ones its features own: Worker or R2 custom domains, Email Routing's MX and DKIM): nobody declares it. It belongs to whatever created the feature. An editable record is declared, even if a feature first suggested it (the apex SPF).
 - **Everything else** (zone-wide mail records, verification TXT records, anything not tied to one app's stack): here, in `src/zone.ts`, with a PR and its `pulumi preview`.
 
 To bring in a record that was added by hand, declare it with its exact current values (TXT contents with their quotes) and `{ import: "<zone id>/<record id>" }`. The preview must show `= import` and no other change for it. Never create a second record for a name that already has one.
