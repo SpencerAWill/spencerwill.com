@@ -31,10 +31,12 @@ jobs:
   # docs-only PR does not wait on a preview. Push runs skip detection and run
   # everything.
   #
-  # Runs on drafts too. Skipping drafts here would skip every check, and
-  # `required` would then report a green result on the draft's head commit.
+  # Skipped on drafts, and so is everything after it: the preview would ask a
+  # reviewer to approve every push to work in progress. `required` fails on a
+  # draft instead of reporting green, and marking it ready reruns everything.
   paths:
     name: "check: changes"
+    if: github.event.pull_request.draft != true
     runs-on: ubuntu-latest
     timeout-minutes: 2
     permissions:
@@ -202,22 +204,23 @@ jobs:
   # can only read (infra/github mints it). The write token stays in `prod`,
   # which only main can use, behind a reviewer.
   #
-  # It is not a boundary against someone who can push a branch, though: this
-  # job holds PULUMI_ACCESS_TOKEN, which can decrypt this stack's state (see
-  # "Security model" in the README).
+  # The Cloudflare token is not the risky one, though. The Pulumi token this
+  # job mints through OIDC is personal and can read every stack's secrets,
+  # infra/github's Cloudflare write token included. So the `preview`
+  # environment requires a reviewer: approve a run only for a branch whose
+  # changes you have read (see "Security model" in the README).
   #
-  # Skipped where the run gets no secrets and would fail on an empty token:
-  # PRs from forks, and runs Dependabot triggered (those get only Dependabot
-  # secrets). Push any commit to a Dependabot branch to preview it, which
-  # matters for @pulumi/* bumps. Also skipped until PULUMI_CI_ENABLED is
-  # "true".
+  # Skipped for PRs from forks, which get no secrets, and until
+  # PULUMI_CI_ENABLED is "true". Runs Dependabot triggered get no secrets
+  # either, but those fail on purpose (first step) rather than skip: a skip
+  # would let `required` pass, and a @pulumi/* bump would merge with nobody
+  # having read its preview.
   preview:
     name: "check: pulumi preview"
     needs: [paths, verify]
     if: >-
       github.event_name == 'pull_request' &&
       github.event.pull_request.head.repo.fork != true &&
-      github.actor != 'dependabot[bot]' &&
       vars.PULUMI_CI_ENABLED == 'true' &&
       needs.paths.outputs.code == 'true'
     runs-on: ubuntu-latest
@@ -225,8 +228,20 @@ jobs:
     environment: preview
     permissions:
       contents: read
+      id-token: write # the OIDC exchange with Pulumi Cloud
       pull-requests: write # the preview comment
     steps:
+      # Runs Dependabot triggered get no Actions or environment secrets. Fail
+      # here with the way out, rather than later on an empty token.
+      - name: Require the environment's secrets
+        env:
+          HAS_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN != '' }}
+        run: |
+          if [ "$HAS_TOKEN" != true ]; then
+            echo "::error::This run got no secrets (Dependabot-triggered runs never do), so there is no preview. Push any commit to this branch (e.g. git commit --allow-empty) to run it as yourself, and read the diff before merging."
+            exit 1
+          fi
+
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
@@ -240,6 +255,17 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
+      # Exchanges this job's GitHub OIDC token for a short-lived Pulumi token
+      # and exports it as PULUMI_ACCESS_TOKEN. Pulumi Cloud trusts only jobs
+      # in the `preview` and `prod` environments (infra/github/src/pulumi-oidc.ts),
+      # and the variables below come from infra/github.
+      - uses: pulumi/auth-actions@141415910c3beb54e03b48e9057c204c97b956f2 # v2.1.0
+        with:
+          organization: ${{ vars.PULUMI_ORGANIZATION }}
+          requested-token-type: urn:pulumi:token-type:access_token:personal
+          scope: user:${{ vars.PULUMI_USER_LOGIN }}
+          token-expiration: 3600
+
       # Same CLI version as @pulumi/pulumi in pnpm-workspace.yaml; bump both.
       - uses: pulumi/actions@8e5e406f4007fca908480587cb9893c07090f58d # v7.0.0
         with:
@@ -250,7 +276,6 @@ jobs:
           diff: true
           comment-on-pr: true
         env:
-          PULUMI_ACCESS_TOKEN: ${{ secrets.PULUMI_ACCESS_TOKEN }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
 
   # The one required status check (infra/github's ruleset). It passes when
@@ -268,7 +293,12 @@ jobs:
       - name: Every check passed or was skipped
         env:
           RESULTS: ${{ join(needs.*.result, ' ') }}
+          DRAFT: ${{ github.event.pull_request.draft == true }}
         run: |
+          if [ "$DRAFT" = true ]; then
+            echo "::error::Draft PR: no checks ran. Mark it ready for review to run them."
+            exit 1
+          fi
           echo "Results: $RESULTS"
           case " $RESULTS " in
             *" failure "* | *" cancelled "*) exit 1 ;;
@@ -294,6 +324,7 @@ jobs:
     timeout-minutes: 20
     permissions:
       contents: read
+      id-token: write # the OIDC exchange with Pulumi Cloud
     environment: prod
     # One apply at a time, never cancelled halfway: a half-applied `pulumi up`
     # is a state to reconcile, not a no-op.
@@ -314,6 +345,17 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
+      # Exchanges this job's GitHub OIDC token for a short-lived Pulumi token
+      # and exports it as PULUMI_ACCESS_TOKEN. Pulumi Cloud trusts only jobs
+      # in the `preview` and `prod` environments (infra/github/src/pulumi-oidc.ts),
+      # and the variables below come from infra/github.
+      - uses: pulumi/auth-actions@141415910c3beb54e03b48e9057c204c97b956f2 # v2.1.0
+        with:
+          organization: ${{ vars.PULUMI_ORGANIZATION }}
+          requested-token-type: urn:pulumi:token-type:access_token:personal
+          scope: user:${{ vars.PULUMI_USER_LOGIN }}
+          token-expiration: 3600
+
       - uses: pulumi/actions@8e5e406f4007fca908480587cb9893c07090f58d # v7.0.0
         with:
           pulumi-version: 3.268.0
@@ -322,5 +364,4 @@ jobs:
           work-dir: infra/cloudflare
           diff: true
         env:
-          PULUMI_ACCESS_TOKEN: ${{ secrets.PULUMI_ACCESS_TOKEN }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
