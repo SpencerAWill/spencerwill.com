@@ -163,11 +163,16 @@ What keeps that safe is that every job that can get a Pulumi token waits for a r
 - Both environments require approval from `reviewerIds`. A branch that changed `ci.yml` or the Pulumi program to print secrets still waits for your click. So read a PR's changes before approving its preview, especially changes to `.github/` or anything that runs code.
 - Fork PRs get no secrets and are never previewed. Dependabot runs get no secrets either.
 
-Before listing another repo in `pulumiOidcRepositories`, make sure every environment you list there also requires a reviewer. Otherwise that repo's PR branches can read this repo's tokens.
+Before listing another repo in `pulumiOidcRepositories`, make sure every environment you list there also requires a reviewer. Otherwise that repo's PR branches can read this repo's tokens. The one accepted exception is a `dev` environment that every merge to `main` deploys, as in ucmc and flareling. It can go without a reviewer only if both of these hold, enforced by that repo's own settings:
+
+- it deploys from `main` only (an environment branch policy)
+- `main` changes only through a PR that passed CI (a ruleset whose required check is pinned to GitHub Actions)
+
+Then the only code that can mint a token there is code that already reached `main` through review. Admins can still bypass the ruleset.
 
 ### Moving another repo to Pulumi OIDC
 
-1. Make sure each GitHub environment its Pulumi jobs declare requires a reviewer (see [Security model](#security-model)).
+1. Make sure each GitHub environment its Pulumi jobs declare requires a reviewer, or is a `dev` environment that meets the exception's bar (see [Security model](#security-model)).
    Also make sure the repo sends GitHub's immutable OIDC subject, which the policies match on (it names the owner and repo by numeric ID, so a re-created repo with the same name doesn't match). `gh api repos/<owner>/<repo>/actions/oidc/customization/sub` should show `"use_immutable_subject": true`. New repos do by default; switch an older one with `gh api -X PUT repos/<owner>/<repo>/actions/oidc/customization/sub -F use_default=true -F use_immutable_subject=true` (ucmc.spencerwill.com was switched this way).
 2. Add the repo and the GitHub environments its Pulumi jobs declare to `pulumiOidcRepositories` in `infra/github/Pulumi.main.yaml`. Merge that, then run `pnpm apply` in `infra/github`.
 3. In that repo's workflows, give each Pulumi job `id-token: write` and an `environment:`, and log in with `pulumi/auth-actions` (as in this repo's `ci.yml`: `organization: SpencerAWill`, `requested-token-type: urn:pulumi:token-type:access_token:personal`, `scope: user:SpencerAWill`).
