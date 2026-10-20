@@ -24,14 +24,18 @@ config:
   # one per GitHub URL), as "<owner>/<repo>": [<GitHub environments>]. Add a
   # repo here and apply this stack before its workflows switch to OIDC.
   # Example: '{"SpencerAWill/ucmc.spencerwill.com": ["dev", "prod"]}'
-  # flareling's `preview` environment (PR previews of its infra/cloudflare
-  # stacks) requires a reviewer, as the README's Security model asks.
-  # ucmc's `prod` and `preview` require one too. Its `dev` deliberately
-  # doesn't: every merge to main deploys it, so a reviewer would mean
-  # approving every merge twice. dev deploys from main only (branch policy),
-  # and main changes only through a PR that passed CI (ruleset), both
-  # managed by ucmc's infra/github (SpencerAWill/ucmc.spencerwill.com#311).
-  spencerwill-shared-github:pulumiOidcRepositories: '{"SpencerAWill/flareling": ["preview"], "SpencerAWill/ucmc.spencerwill.com": ["dev", "prod", "preview"]}'
+  # Each listed environment requires a reviewer, as the README's Security
+  # model asks, except each repo's `dev`: every merge to main deploys it, so
+  # a reviewer would mean approving every merge twice. dev instead deploys
+  # from main only (branch policy), and main changes only through a PR that
+  # passed CI (ruleset). Each repo's own infra/github manages both.
+  # - ucmc (SpencerAWill/ucmc.spencerwill.com#311): `prod` and `preview`
+  #   require a reviewer; `dev` is main-only.
+  # - flareling (#23, SpencerAWill/flareling#25): `prod` and `preview` require
+  #   a reviewer; `dev` and `prod` are main-only. Checked 2026-10-19. Its
+  #   ruleset's `required` check isn't pinned to GitHub Actions
+  #   (integration_id), unlike ucmc's and this repo's, so it should be.
+  spencerwill-shared-github:pulumiOidcRepositories: '{"SpencerAWill/flareling": ["dev", "prod", "preview"], "SpencerAWill/ucmc.spencerwill.com": ["dev", "prod", "preview"]}'
   # Where the CI tokens are minted, and the zone their zone permissions are
   # scoped to. Same values as infra/cloudflare's prod stack. Minting runs only
   # once `cloudflare:apiToken` is set here (as a secret).
