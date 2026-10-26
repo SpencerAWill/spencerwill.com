@@ -61,9 +61,9 @@ catalog:
 
   # Repo tooling
   "@biomejs/biome": ^2.5.15
-  "@commitlint/cli": ^21.2.3
-  "@commitlint/config-conventional": ^21.2.3
-  "@commitlint/cz-commitlint": ^21.2.3
+  "@commitlint/cli": ^21.2.4
+  "@commitlint/config-conventional": ^21.2.4
+  "@commitlint/cz-commitlint": ^21.2.4
   commitizen: ^4.3.2
   husky: ^9.1.7
   inquirer: ^12.11.1
