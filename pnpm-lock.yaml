@@ -211,8 +211,8 @@ catalogs:
       specifier: 6.15.0
       version: 6.15.0
     '@pulumi/pulumi':
-      specifier: 3.268.0
-      version: 3.268.0
+      specifier: 3.270.0
+      version: 3.270.0
     '@pulumi/pulumiservice':
       specifier: 1.4.0
       version: 1.4.0
@@ -274,7 +274,7 @@ importers:
         version: 1.2.1(supports-color@7.2.0)(typescript@7.0.2)
       '@pulumi/pulumi':
         specifier: 'catalog:'
-        version: 3.268.0(supports-color@7.2.0)(typescript@7.0.2)
+        version: 3.270.0(supports-color@7.2.0)(typescript@7.0.2)
     devDependencies:
       '@types/node':
         specifier: 'catalog:'
@@ -293,7 +293,7 @@ importers:
         version: 6.15.0(supports-color@7.2.0)(typescript@7.0.2)
       '@pulumi/pulumi':
         specifier: 'catalog:'
-        version: 3.268.0(supports-color@7.2.0)(typescript@7.0.2)
+        version: 3.270.0(supports-color@7.2.0)(typescript@7.0.2)
       '@pulumi/pulumiservice':
         specifier: 'catalog:'
         version: 1.4.0(supports-color@7.2.0)(typescript@7.0.2)
@@ -778,12 +778,14 @@ packages:
   '@opentelemetry/sdk-trace-base@2.12.0':
     resolution: {integrity: sha512-JOERgZCxRM06FEJ5kEWxlSRChah6MmXDx3KwCruqEv/iEyLkTokCSemf2y1w8oIHtfrr8EVTpzebq/31vn2Cpg==}
     engines: {node: ^18.19.0 || >=20.6.0}
+    deprecated: Use @opentelemetry/sdk-trace package
     peerDependencies:
       '@opentelemetry/api': '>=1.3.0 <1.10.0'
 
   '@opentelemetry/sdk-trace-node@2.12.0':
     resolution: {integrity: sha512-9DufH1IlmQMoKAfot5y/FhTP1RnmhLb5K6eKmJO/bvzPjYwPAazoiAUbTZFdPbqxOXN0FEbhZx/e6SB1Og4jmg==}
     engines: {node: ^18.19.0 || >=20.6.0}
+    deprecated: Use @opentelemetry/sdk-trace package
     peerDependencies:
       '@opentelemetry/api': '>=1.0.0 <1.10.0'
 
@@ -839,8 +841,8 @@ packages:
   '@pulumi/github@6.15.0':
     resolution: {integrity: sha512-U8ZxPQQcOrcTn8y8EZsWmXzMtbw0JnwWCVGmqxBZ/i2SpUlEGMYT9B+EFC/qTALZXkDf7cMiq6fZ3Gy1G23nyQ==}
 
-  '@pulumi/pulumi@3.268.0':
-    resolution: {integrity: sha512-VtTIr44eC78BX4cAeh2MEqJqVFu5/UfrmsxjLdH73YIPr5igPEo9JB4g5yqncTHcXNxbkxJXndMOEm1CkpJA5Q==}
+  '@pulumi/pulumi@3.270.0':
+    resolution: {integrity: sha512-k2GSGtoP2yrkIe4r+1YvyKL6k7mM6SYnySv6tSzGrv/oTY7WemEmvNEvn7Qd/JbkCMmYeBhWULDS5qB9qpvgkg==}
     engines: {node: '>=22'}
     peerDependencies:
       ts-node: '>= 7.0.1 < 12'
@@ -2713,7 +2715,7 @@ snapshots:
 
   '@pulumi/cloudflare@6.22.0(supports-color@7.2.0)(typescript@7.0.2)':
     dependencies:
-      '@pulumi/pulumi': 3.268.0(supports-color@7.2.0)(typescript@7.0.2)
+      '@pulumi/pulumi': 3.270.0(supports-color@7.2.0)(typescript@7.0.2)
     transitivePeerDependencies:
       - supports-color
       - ts-node
@@ -2721,7 +2723,7 @@ snapshots:
 
   '@pulumi/command@1.2.1(supports-color@7.2.0)(typescript@7.0.2)':
     dependencies:
-      '@pulumi/pulumi': 3.268.0(supports-color@7.2.0)(typescript@7.0.2)
+      '@pulumi/pulumi': 3.270.0(supports-color@7.2.0)(typescript@7.0.2)
     transitivePeerDependencies:
       - supports-color
       - ts-node
@@ -2729,13 +2731,13 @@ snapshots:
 
   '@pulumi/github@6.15.0(supports-color@7.2.0)(typescript@7.0.2)':
     dependencies:
-      '@pulumi/pulumi': 3.268.0(supports-color@7.2.0)(typescript@7.0.2)
+      '@pulumi/pulumi': 3.270.0(supports-color@7.2.0)(typescript@7.0.2)
     transitivePeerDependencies:
       - supports-color
       - ts-node
       - typescript
 
-  '@pulumi/pulumi@3.268.0(supports-color@7.2.0)(typescript@7.0.2)':
+  '@pulumi/pulumi@3.270.0(supports-color@7.2.0)(typescript@7.0.2)':
     dependencies:
       '@grpc/grpc-js': 1.14.6
       '@logdna/tail-file': 2.2.0
@@ -2769,7 +2771,7 @@ snapshots:
 
   '@pulumi/pulumiservice@1.4.0(supports-color@7.2.0)(typescript@7.0.2)':
     dependencies:
-      '@pulumi/pulumi': 3.268.0(supports-color@7.2.0)(typescript@7.0.2)
+      '@pulumi/pulumi': 3.270.0(supports-color@7.2.0)(typescript@7.0.2)
     transitivePeerDependencies:
       - supports-color
       - ts-node
