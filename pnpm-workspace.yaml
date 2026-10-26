@@ -53,7 +53,7 @@ catalog:
   # database). Here a replacement could mean the zone, its DNS, or the Resend
   # domain. Bump each in its own PR and read the `pulumi preview` diff first;
   # see "Upgrading Pulumi" in the README.
-  "@pulumi/pulumi": 3.268.0
+  "@pulumi/pulumi": 3.270.0
   "@pulumi/cloudflare": 6.22.0
   "@pulumi/github": 6.15.0
   "@pulumi/pulumiservice": 1.4.0
