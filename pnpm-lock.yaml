@@ -214,8 +214,8 @@ catalogs:
       specifier: 3.268.0
       version: 3.268.0
     '@pulumi/pulumiservice':
-      specifier: 1.4.0
-      version: 1.4.0
+      specifier: 1.5.0
+      version: 1.5.0
     '@types/node':
       specifier: ^24.19.2
       version: 24.19.2
@@ -296,7 +296,7 @@ importers:
         version: 3.268.0(supports-color@7.2.0)(typescript@7.0.2)
       '@pulumi/pulumiservice':
         specifier: 'catalog:'
-        version: 1.4.0(supports-color@7.2.0)(typescript@7.0.2)
+        version: 1.5.0(supports-color@7.2.0)(typescript@7.0.2)
     devDependencies:
       '@types/node':
         specifier: 'catalog:'
@@ -778,12 +778,14 @@ packages:
   '@opentelemetry/sdk-trace-base@2.12.0':
     resolution: {integrity: sha512-JOERgZCxRM06FEJ5kEWxlSRChah6MmXDx3KwCruqEv/iEyLkTokCSemf2y1w8oIHtfrr8EVTpzebq/31vn2Cpg==}
     engines: {node: ^18.19.0 || >=20.6.0}
+    deprecated: Use @opentelemetry/sdk-trace package
     peerDependencies:
       '@opentelemetry/api': '>=1.3.0 <1.10.0'
 
   '@opentelemetry/sdk-trace-node@2.12.0':
     resolution: {integrity: sha512-9DufH1IlmQMoKAfot5y/FhTP1RnmhLb5K6eKmJO/bvzPjYwPAazoiAUbTZFdPbqxOXN0FEbhZx/e6SB1Og4jmg==}
     engines: {node: ^18.19.0 || >=20.6.0}
+    deprecated: Use @opentelemetry/sdk-trace package
     peerDependencies:
       '@opentelemetry/api': '>=1.0.0 <1.10.0'
 
@@ -851,8 +853,8 @@ packages:
       typescript:
         optional: true
 
-  '@pulumi/pulumiservice@1.4.0':
-    resolution: {integrity: sha512-/dTBnDfsON/FEtmvh4U2ooMmPklaYu+/CuIZSSCDAoPrfYSybLs7sJh6XUDCx7d7TKejLR3i3//a3u51Uxuorw==}
+  '@pulumi/pulumiservice@1.5.0':
+    resolution: {integrity: sha512-RFPjYwZdV9n0YWiXaufQfYhAj3MnT2zYTSF8kuMlYlNgnh4TBERZHFDvoyKAEHPhjyO0DIsR2quyaQ4GY8Sg8Q==}
 
   '@sigstore/bundle@4.0.0':
     resolution: {integrity: sha512-NwCl5Y0V6Di0NexvkTqdoVfmjTaQwoLM236r89KEojGmq/jMls8S+zb7yOwAPdXvbwfKDlP+lmXgAL4vKSQT+A==}
@@ -2767,7 +2769,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@pulumi/pulumiservice@1.4.0(supports-color@7.2.0)(typescript@7.0.2)':
+  '@pulumi/pulumiservice@1.5.0(supports-color@7.2.0)(typescript@7.0.2)':
     dependencies:
       '@pulumi/pulumi': 3.268.0(supports-color@7.2.0)(typescript@7.0.2)
     transitivePeerDependencies:
