@@ -56,7 +56,7 @@ catalog:
   "@pulumi/pulumi": 3.268.0
   "@pulumi/cloudflare": 6.22.0
   "@pulumi/github": 6.15.0
-  "@pulumi/pulumiservice": 1.4.0
+  "@pulumi/pulumiservice": 1.5.0
   "@pulumi/command": 1.2.1
 
   # Repo tooling
