@@ -208,8 +208,8 @@ catalogs:
       specifier: 1.2.1
       version: 1.2.1
     '@pulumi/github':
-      specifier: 6.15.0
-      version: 6.15.0
+      specifier: 6.15.1
+      version: 6.15.1
     '@pulumi/pulumi':
       specifier: 3.268.0
       version: 3.268.0
@@ -290,7 +290,7 @@ importers:
         version: 6.22.0(supports-color@7.2.0)(typescript@7.0.2)
       '@pulumi/github':
         specifier: 'catalog:'
-        version: 6.15.0(supports-color@7.2.0)(typescript@7.0.2)
+        version: 6.15.1(supports-color@7.2.0)(typescript@7.0.2)
       '@pulumi/pulumi':
         specifier: 'catalog:'
         version: 3.268.0(supports-color@7.2.0)(typescript@7.0.2)
@@ -778,12 +778,14 @@ packages:
   '@opentelemetry/sdk-trace-base@2.12.0':
     resolution: {integrity: sha512-JOERgZCxRM06FEJ5kEWxlSRChah6MmXDx3KwCruqEv/iEyLkTokCSemf2y1w8oIHtfrr8EVTpzebq/31vn2Cpg==}
     engines: {node: ^18.19.0 || >=20.6.0}
+    deprecated: Use @opentelemetry/sdk-trace package
     peerDependencies:
       '@opentelemetry/api': '>=1.3.0 <1.10.0'
 
   '@opentelemetry/sdk-trace-node@2.12.0':
     resolution: {integrity: sha512-9DufH1IlmQMoKAfot5y/FhTP1RnmhLb5K6eKmJO/bvzPjYwPAazoiAUbTZFdPbqxOXN0FEbhZx/e6SB1Og4jmg==}
     engines: {node: ^18.19.0 || >=20.6.0}
+    deprecated: Use @opentelemetry/sdk-trace package
     peerDependencies:
       '@opentelemetry/api': '>=1.0.0 <1.10.0'
 
@@ -836,8 +838,8 @@ packages:
   '@pulumi/command@1.2.1':
     resolution: {integrity: sha512-mutNDIUYP67yCBYOVIidQyxuTwZDY9v/sx9EGbgIv4PXfyfolOKGgGLeoHEbI1lxRwaw2wbTZ3VNIynDnA5VKA==}
 
-  '@pulumi/github@6.15.0':
-    resolution: {integrity: sha512-U8ZxPQQcOrcTn8y8EZsWmXzMtbw0JnwWCVGmqxBZ/i2SpUlEGMYT9B+EFC/qTALZXkDf7cMiq6fZ3Gy1G23nyQ==}
+  '@pulumi/github@6.15.1':
+    resolution: {integrity: sha512-lXoLADTzeUvhOwxqnpt1Cz2loBm7B1ufsztBBvW4QiBkam6zbNOyq6WbOQVFMVEpoKpPhQxENTLTiJt1NKxLOQ==}
 
   '@pulumi/pulumi@3.268.0':
     resolution: {integrity: sha512-VtTIr44eC78BX4cAeh2MEqJqVFu5/UfrmsxjLdH73YIPr5igPEo9JB4g5yqncTHcXNxbkxJXndMOEm1CkpJA5Q==}
@@ -2727,7 +2729,7 @@ snapshots:
       - ts-node
       - typescript
 
-  '@pulumi/github@6.15.0(supports-color@7.2.0)(typescript@7.0.2)':
+  '@pulumi/github@6.15.1(supports-color@7.2.0)(typescript@7.0.2)':
     dependencies:
       '@pulumi/pulumi': 3.268.0(supports-color@7.2.0)(typescript@7.0.2)
     transitivePeerDependencies:
