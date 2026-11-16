@@ -79,7 +79,7 @@ jobs:
           persist-credentials: false
 
       # Reads the pnpm version from `packageManager` in package.json.
-      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
 
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
@@ -136,7 +136,7 @@ jobs:
         with:
           persist-credentials: false
 
-      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
 
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
@@ -246,7 +246,7 @@ jobs:
         with:
           persist-credentials: false
 
-      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
 
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
@@ -259,7 +259,7 @@ jobs:
       # and exports it as PULUMI_ACCESS_TOKEN. Pulumi Cloud trusts only jobs
       # in the `preview` and `prod` environments (infra/github/src/pulumi-oidc.ts),
       # and the variables below come from infra/github.
-      - uses: pulumi/auth-actions@141415910c3beb54e03b48e9057c204c97b956f2 # v2.1.0
+      - uses: pulumi/auth-actions@273044cc19e63ea565285da8edd4e059126a0bdb # v2.1.2
         with:
           organization: ${{ vars.PULUMI_ORGANIZATION }}
           requested-token-type: urn:pulumi:token-type:access_token:personal
@@ -267,7 +267,7 @@ jobs:
           token-expiration: 3600
 
       # Same CLI version as @pulumi/pulumi in pnpm-workspace.yaml; bump both.
-      - uses: pulumi/actions@8e5e406f4007fca908480587cb9893c07090f58d # v7.0.0
+      - uses: pulumi/actions@96c7761824268174e0d2a4e8c7d75671eebd24a7 # v7.1.0
         with:
           pulumi-version: 3.268.0
           command: preview
@@ -336,7 +336,7 @@ jobs:
         with:
           persist-credentials: false
 
-      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
 
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
@@ -349,14 +349,14 @@ jobs:
       # and exports it as PULUMI_ACCESS_TOKEN. Pulumi Cloud trusts only jobs
       # in the `preview` and `prod` environments (infra/github/src/pulumi-oidc.ts),
       # and the variables below come from infra/github.
-      - uses: pulumi/auth-actions@141415910c3beb54e03b48e9057c204c97b956f2 # v2.1.0
+      - uses: pulumi/auth-actions@273044cc19e63ea565285da8edd4e059126a0bdb # v2.1.2
         with:
           organization: ${{ vars.PULUMI_ORGANIZATION }}
           requested-token-type: urn:pulumi:token-type:access_token:personal
           scope: user:${{ vars.PULUMI_USER_LOGIN }}
           token-expiration: 3600
 
-      - uses: pulumi/actions@8e5e406f4007fca908480587cb9893c07090f58d # v7.0.0
+      - uses: pulumi/actions@96c7761824268174e0d2a4e8c7d75671eebd24a7 # v7.1.0
         with:
           pulumi-version: 3.268.0
           command: up
