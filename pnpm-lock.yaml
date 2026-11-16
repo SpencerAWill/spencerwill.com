@@ -202,8 +202,8 @@ catalogs:
       specifier: ^21.2.3
       version: 21.2.3
     '@pulumi/cloudflare':
-      specifier: 6.22.0
-      version: 6.22.0
+      specifier: 6.23.3
+      version: 6.23.3
     '@pulumi/command':
       specifier: 1.2.1
       version: 1.2.1
@@ -268,7 +268,7 @@ importers:
     dependencies:
       '@pulumi/cloudflare':
         specifier: 'catalog:'
-        version: 6.22.0(supports-color@7.2.0)(typescript@7.0.2)
+        version: 6.23.3(supports-color@7.2.0)(typescript@7.0.2)
       '@pulumi/command':
         specifier: 'catalog:'
         version: 1.2.1(supports-color@7.2.0)(typescript@7.0.2)
@@ -287,7 +287,7 @@ importers:
     dependencies:
       '@pulumi/cloudflare':
         specifier: 'catalog:'
-        version: 6.22.0(supports-color@7.2.0)(typescript@7.0.2)
+        version: 6.23.3(supports-color@7.2.0)(typescript@7.0.2)
       '@pulumi/github':
         specifier: 'catalog:'
         version: 6.15.0(supports-color@7.2.0)(typescript@7.0.2)
@@ -778,12 +778,14 @@ packages:
   '@opentelemetry/sdk-trace-base@2.12.0':
     resolution: {integrity: sha512-JOERgZCxRM06FEJ5kEWxlSRChah6MmXDx3KwCruqEv/iEyLkTokCSemf2y1w8oIHtfrr8EVTpzebq/31vn2Cpg==}
     engines: {node: ^18.19.0 || >=20.6.0}
+    deprecated: Use @opentelemetry/sdk-trace package
     peerDependencies:
       '@opentelemetry/api': '>=1.3.0 <1.10.0'
 
   '@opentelemetry/sdk-trace-node@2.12.0':
     resolution: {integrity: sha512-9DufH1IlmQMoKAfot5y/FhTP1RnmhLb5K6eKmJO/bvzPjYwPAazoiAUbTZFdPbqxOXN0FEbhZx/e6SB1Og4jmg==}
     engines: {node: ^18.19.0 || >=20.6.0}
+    deprecated: Use @opentelemetry/sdk-trace package
     peerDependencies:
       '@opentelemetry/api': '>=1.0.0 <1.10.0'
 
@@ -830,8 +832,8 @@ packages:
   '@protobufjs/utf8@1.1.2':
     resolution: {integrity: sha512-b1UQwcEZ4yCnMCD8DAL1VlbvBJE9/IX4FTIp7BG1xYpf29SLazLSrqUkj4w7Y5y7cCVP6E5tcqqcI0xemPkHug==}
 
-  '@pulumi/cloudflare@6.22.0':
-    resolution: {integrity: sha512-ljJpS3vhIaTNzTvoNURkUfXnzDlBS0gx2nxvg84JmH6kuYoCmsLiQ1afOdhXly4+G/JIgYqjdxo2QNliVUWYDw==}
+  '@pulumi/cloudflare@6.23.3':
+    resolution: {integrity: sha512-etEo7csPhmv2K2dbRfyj9lCKcka5vTH9qowVufK9b+iDB2qEta9M/CPo+2QgsaANeEmxRTztqg+pIi+Xtzhjow==}
 
   '@pulumi/command@1.2.1':
     resolution: {integrity: sha512-mutNDIUYP67yCBYOVIidQyxuTwZDY9v/sx9EGbgIv4PXfyfolOKGgGLeoHEbI1lxRwaw2wbTZ3VNIynDnA5VKA==}
@@ -841,6 +843,18 @@ packages:
 
   '@pulumi/pulumi@3.268.0':
     resolution: {integrity: sha512-VtTIr44eC78BX4cAeh2MEqJqVFu5/UfrmsxjLdH73YIPr5igPEo9JB4g5yqncTHcXNxbkxJXndMOEm1CkpJA5Q==}
+    engines: {node: '>=22'}
+    peerDependencies:
+      ts-node: '>= 7.0.1 < 12'
+      typescript: '>= 3.8.3 < 7'
+    peerDependenciesMeta:
+      ts-node:
+        optional: true
+      typescript:
+        optional: true
+
+  '@pulumi/pulumi@3.274.1':
+    resolution: {integrity: sha512-L9WHM4W7y9BmGwTZ0n5yUEVo7zhb6BXocNFPv3VtwEH3DZUzJ6N+VTiLvo1HbSMnZJJVS0jFL4zMmOm80Lbzeg==}
     engines: {node: '>=22'}
     peerDependencies:
       ts-node: '>= 7.0.1 < 12'
@@ -2711,9 +2725,9 @@ snapshots:
 
   '@protobufjs/utf8@1.1.2': {}
 
-  '@pulumi/cloudflare@6.22.0(supports-color@7.2.0)(typescript@7.0.2)':
+  '@pulumi/cloudflare@6.23.3(supports-color@7.2.0)(typescript@7.0.2)':
     dependencies:
-      '@pulumi/pulumi': 3.268.0(supports-color@7.2.0)(typescript@7.0.2)
+      '@pulumi/pulumi': 3.274.1(supports-color@7.2.0)(typescript@7.0.2)
     transitivePeerDependencies:
       - supports-color
       - ts-node
@@ -2740,6 +2754,37 @@ snapshots:
       '@grpc/grpc-js': 1.14.6
       '@logdna/tail-file': 2.2.0
       '@npmcli/arborist': 9.9.2(supports-color@7.2.0)
+      '@opentelemetry/api': 1.9.1
+      '@opentelemetry/core': 2.12.0(@opentelemetry/api@1.9.1)
+      '@opentelemetry/exporter-trace-otlp-grpc': 0.220.0(@opentelemetry/api@1.9.1)
+      '@opentelemetry/exporter-zipkin': 2.12.0(@opentelemetry/api@1.9.1)
+      '@opentelemetry/instrumentation': 0.220.0(@opentelemetry/api@1.9.1)(supports-color@7.2.0)
+      '@opentelemetry/instrumentation-grpc': 0.220.0(@opentelemetry/api@1.9.1)(supports-color@7.2.0)
+      '@opentelemetry/resources': 2.12.0(@opentelemetry/api@1.9.1)
+      '@opentelemetry/sdk-trace-base': 2.12.0(@opentelemetry/api@1.9.1)
+      '@opentelemetry/sdk-trace-node': 2.12.0(@opentelemetry/api@1.9.1)
+      '@opentelemetry/semantic-conventions': 1.43.0
+      '@types/google-protobuf': 3.15.12
+      '@types/semver': 7.8.0
+      execa: 5.1.1
+      google-protobuf: 3.21.4
+      ini: 2.0.0
+      js-yaml: 4.3.2
+      minimist: 1.2.8
+      normalize-package-data: 6.0.2
+      require-from-string: 2.0.2
+      semver: 7.8.5
+      source-map-support: 0.5.21
+      upath: 1.2.0
+    optionalDependencies:
+      typescript: 7.0.2
+    transitivePeerDependencies:
+      - supports-color
+
+  '@pulumi/pulumi@3.274.1(supports-color@7.2.0)(typescript@7.0.2)':
+    dependencies:
+      '@grpc/grpc-js': 1.14.6
+      '@logdna/tail-file': 2.2.0
       '@opentelemetry/api': 1.9.1
       '@opentelemetry/core': 2.12.0(@opentelemetry/api@1.9.1)
       '@opentelemetry/exporter-trace-otlp-grpc': 0.220.0(@opentelemetry/api@1.9.1)
